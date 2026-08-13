@@ -4,7 +4,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, Users, Settings, HeartHandshake, ChevronsLeft, Menu } from 'lucide-react'
 
-export function Sidebar({ role, isCollapsed, setIsCollapsed }: { role: string; isCollapsed: boolean; setIsCollapsed: (val: boolean) => void }) {
+export function Sidebar({ role, isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen }: { role: string; isCollapsed: boolean; setIsCollapsed: (val: boolean) => void; isMobileOpen: boolean; setIsMobileOpen: (val: boolean) => void }) {
   const pathname = usePathname()
 
   const navItems = [
@@ -48,7 +48,11 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: { role: string; i
   }
 
   return (
-    <aside className={`bg-white border-r border-gray-200 flex-shrink-0 flex flex-col h-full transition-all duration-300 ease-in-out ${isCollapsed ? 'w-20' : 'w-full md:w-64'}`}>
+    <aside className={`
+      fixed inset-y-0 left-0 z-50 h-full bg-white border-r border-slate-200 flex flex-col transition-all duration-300 ease-in-out
+      ${isMobileOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'}
+      md:relative md:translate-x-0 ${isCollapsed ? 'md:w-20' : 'md:w-64'}
+    `}>
       
       {/* Sidebar Header (Logo & Toggle) */}
       <div className="h-16 flex items-center justify-between px-4 flex-shrink-0 bg-red-900 text-white shadow-md z-30">
@@ -99,6 +103,7 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed }: { role: string; i
             <Link
               key={item.href}
               href={item.href}
+              onClick={() => setIsMobileOpen(false)}
               className={`flex items-center rounded-lg font-medium transition-all duration-300 ${
                 isCollapsed ? 'justify-center p-3' : 'px-3 py-2 space-x-3'
               } ${

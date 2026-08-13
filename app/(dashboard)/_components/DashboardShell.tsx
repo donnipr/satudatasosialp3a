@@ -6,12 +6,27 @@ import { Sidebar } from './Sidebar'
 
 export function DashboardShell({ role, currentDate, children }: { role: string; currentDate: string; children: React.ReactNode }) {
   const [isCollapsed, setIsCollapsed] = useState(false)
+  const [isMobileOpen, setIsMobileOpen] = useState(false)
 
   return (
     <div className="flex h-screen overflow-hidden bg-gray-50">
       
+      {/* Mobile Overlay */}
+      {isMobileOpen && (
+        <div 
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={() => setIsMobileOpen(false)}
+        />
+      )}
+
       {/* Sidebar (Full Height Left Column) */}
-      <Sidebar role={role} isCollapsed={isCollapsed} setIsCollapsed={setIsCollapsed} />
+      <Sidebar 
+        role={role} 
+        isCollapsed={isCollapsed} 
+        setIsCollapsed={setIsCollapsed} 
+        isMobileOpen={isMobileOpen}
+        setIsMobileOpen={setIsMobileOpen}
+      />
 
       {/* Right Column (Header + Main Content) */}
       <div className="flex-1 flex flex-col h-screen overflow-hidden min-w-0">
@@ -22,7 +37,7 @@ export function DashboardShell({ role, currentDate, children }: { role: string; 
           <div className="flex items-center">
              {/* Mobile menu button (visible only on small screens when sidebar might be hidden) */}
              <button 
-                onClick={() => setIsCollapsed(!isCollapsed)}
+                onClick={() => setIsMobileOpen(true)}
                 className="p-1.5 bg-white/10 border border-white/20 rounded-md hover:bg-white/20 transition md:hidden mr-4"
               >
                 <Menu className="w-5 h-5" />
