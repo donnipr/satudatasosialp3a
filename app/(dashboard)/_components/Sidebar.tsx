@@ -66,11 +66,14 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed, isMobileOpen, setIs
   ]
 
   if (role === 'IAM & ADMIN') {
-    navItems.push({
-      title: 'Pengaturan',
-      href: '/dashboard/pengaturan',
-      icon: Settings
-    })
+    const programKegiatan = navItems.find(item => item.title === 'Program Kegiatan');
+    if (programKegiatan && programKegiatan.subItems) {
+      programKegiatan.subItems.push({
+        title: 'Pengaturan',
+        href: '/dashboard/pengaturan',
+        icon: Settings
+      });
+    }
   }
 
   return (
