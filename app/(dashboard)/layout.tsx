@@ -2,6 +2,8 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { DashboardShell } from './_components/DashboardShell'
 
+import { DataSourceProvider } from '@/components/DataSourceContext';
+
 export default async function DashboardLayout({
   children,
 }: {
@@ -34,7 +36,9 @@ export default async function DashboardLayout({
 
   return (
     <DashboardShell role={role} currentDate={currentDate}>
-      {children}
+      <DataSourceProvider>
+        {children}
+      </DataSourceProvider>
     </DashboardShell>
   )
 }

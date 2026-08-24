@@ -17,3 +17,33 @@ body {
   color: var(--foreground);
   font-family: var(--font-sans);
 }
+
+/* ── Mind Map / react-d3-tree overrides ── */
+.tree-edge {
+  stroke: #D1D5DB !important;
+  stroke-width: 1.5px;
+  fill: none;
+  transition: stroke 0.3s ease;
+}
+.tree-edge:hover {
+  stroke: #DC2626 !important;
+}
+.rd3t-tree-container {
+  width: 100%;
+  height: 100%;
+}
+.rd3t-grabbable {
+  cursor: grab;
+}
+.rd3t-grabbable:active {
+  cursor: grabbing;
+}
+.rd3t-node circle,
+.rd3t-leaf-node circle {
+  display: none;
+}
+
+/* ── Smooth Node Transitions (React Flow) ── */
+.react-flow__node {
+  transition: transform 0.4s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.3s ease !important;
+}

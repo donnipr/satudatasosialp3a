@@ -1,11 +1,21 @@
 'use client'
 
+import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, Settings, HeartHandshake, ChevronsLeft, Menu } from 'lucide-react'
+import { LayoutDashboard, Users, Settings, HeartHandshake, ChevronsLeft, Menu, Network, Layers, ChevronDown, Database } from 'lucide-react'
 
 export function Sidebar({ role, isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen }: { role: string; isCollapsed: boolean; setIsCollapsed: (val: boolean) => void; isMobileOpen: boolean; setIsMobileOpen: (val: boolean) => void }) {
   const pathname = usePathname()
+  const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({})
+
+  const toggleMenu = (title: string) => {
+    // If sidebar is collapsed, open it when clicking a parent menu
+    if (isCollapsed) {
+      setIsCollapsed(false)
+    }
+    setOpenMenus(prev => ({ ...prev, [title]: !prev[title] }))
+  }
 
   const navItems = [
     {
@@ -33,6 +43,22 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed, isMobileOpen, setIs
       )
     },
     {
+      title: 'Program Kegiatan',
+      icon: Layers,
+      subItems: [
+        {
+          title: 'Mind Map',
+          href: '/dashboard/mindmap',
+          icon: Network
+        },
+        {
+          title: 'Data',
+          href: '/dashboard/program-data',
+          icon: Database
+        }
+      ]
+    },
+    {
       title: 'Manajemen Pengguna',
       href: '/dashboard/users',
       icon: Users
@@ -42,7 +68,7 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed, isMobileOpen, setIs
   if (role === 'IAM & ADMIN') {
     navItems.push({
       title: 'Pengaturan',
-      href: '/dashboard/settings',
+      href: '/dashboard/pengaturan',
       icon: Settings
     })
   }
@@ -97,12 +123,68 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed, isMobileOpen, setIs
       {/* Navigation Links */}
       <nav className={`py-6 space-y-1 flex-1 overflow-y-auto ${isCollapsed ? 'px-2' : 'px-4'}`}>
         {navItems.map((item) => {
+          if (item.subItems) {
+            // Check if any sub-item is active
+            const isParentActive = item.subItems.some(sub => pathname === sub.href || pathname.startsWith(sub.href))
+            const isOpen = openMenus[item.title] || isParentActive
+
+            return (
+              <div key={item.title}>
+                <button
+                  onClick={() => toggleMenu(item.title)}
+                  className={`w-full flex items-center justify-between rounded-lg font-medium transition-all duration-300 ${
+                    isCollapsed ? 'justify-center p-3' : 'px-3 py-2'
+                  } ${
+                    isParentActive
+                    ? 'bg-red-50 text-red-600'
+                    : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                  }`}
+                  title={isCollapsed ? item.title : undefined}
+                >
+                  <div className={`flex items-center ${isCollapsed ? 'justify-center' : 'space-x-3'}`}>
+                    <item.icon className={`w-5 h-5 flex-shrink-0 transition-colors ${isParentActive ? 'text-red-600' : 'text-gray-400'}`} />
+                    <span className={`whitespace-nowrap overflow-hidden transition-all duration-300 ${isCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
+                      {item.title}
+                    </span>
+                  </div>
+                  {!isCollapsed && (
+                    <ChevronDown className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${isOpen ? 'rotate-180 text-red-600' : 'text-gray-400'}`} />
+                  )}
+                </button>
+                
+                {/* Sub items rendered when open and not globally collapsed */}
+                {isOpen && !isCollapsed && (
+                  <div className="flex flex-col gap-1 mt-1 pl-8">
+                    {item.subItems.map(sub => {
+                      const isChildActive = pathname === sub.href || pathname.startsWith(sub.href)
+                      return (
+                        <Link
+                          key={sub.title}
+                          href={sub.href}
+                          onClick={() => setIsMobileOpen(false)}
+                          className={`flex items-center rounded-lg font-medium transition-all duration-300 px-3 py-2 space-x-3 text-sm ${
+                            isChildActive
+                            ? 'bg-red-50 text-red-600'
+                            : 'text-gray-600 hover:bg-gray-100 hover:text-gray-900'
+                          }`}
+                        >
+                          <sub.icon className={`w-4 h-4 flex-shrink-0 transition-colors ${isChildActive ? 'text-red-600' : 'text-gray-400'}`} />
+                          <span className="whitespace-nowrap">{sub.title}</span>
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
+            )
+          }
+
           const isActive = pathname === item.href || (item.href !== '/dashboard' && pathname.startsWith(item.href))
 
           return (
             <Link
               key={item.href}
-              href={item.href}
+              href={item.href!}
               onClick={() => setIsMobileOpen(false)}
               className={`flex items-center rounded-lg font-medium transition-all duration-300 ${
                 isCollapsed ? 'justify-center p-3' : 'px-3 py-2 space-x-3'
