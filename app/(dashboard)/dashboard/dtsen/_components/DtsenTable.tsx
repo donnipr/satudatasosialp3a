@@ -1,13 +1,76 @@
 'use client'
 
-import { useState } from 'react'
-import { Edit2, Trash2, X, Save } from 'lucide-react'
+import { useState, useMemo } from 'react'
+import { Edit2, Trash2, X, Save, Search, RefreshCcw, CheckCircle } from 'lucide-react'
 import { updateRekapDtsen, deleteRekapDtsen } from '@/app/actions/dtsen'
 
 export function DtsenTable({ data, role }: { data: any[], role: string }) {
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editForm, setEditForm] = useState<any>({})
   const [isLoading, setIsLoading] = useState(false)
+
+  // Enterprise Data Grid States
+  const [searchQuery, setSearchQuery] = useState('')
+  const [selectedKapanewon, setSelectedKapanewon] = useState('')
+  const [selectedKalurahan, setSelectedKalurahan] = useState('')
+  const [selectedRibbonDeciles, setSelectedRibbonDeciles] = useState<string[]>([])
+
+  // Derived lists
+  const kapanewonList = useMemo(() => Array.from(new Set(data.map(d => d.kecamatan).filter(Boolean))).sort(), [data])
+  const kalurahanList = useMemo(() => Array.from(new Set(
+    data.filter(d => !selectedKapanewon || d.kecamatan === selectedKapanewon)
+        .map(d => d.kelurahan).filter(Boolean)
+  )).sort(), [data, selectedKapanewon])
+
+  // Filter Data
+  const filteredData = useMemo(() => {
+    return data.filter(row => {
+      const matchSearch = !searchQuery || 
+        (row.kecamatan?.toLowerCase() || '').includes(searchQuery.toLowerCase()) || 
+        (row.kelurahan?.toLowerCase() || '').includes(searchQuery.toLowerCase());
+      
+      const matchKapanewon = !selectedKapanewon || row.kecamatan === selectedKapanewon;
+      const matchKalurahan = !selectedKalurahan || row.kelurahan === selectedKalurahan;
+      
+      return matchSearch && matchKapanewon && matchKalurahan;
+    });
+  }, [data, searchQuery, selectedKapanewon, selectedKalurahan]);
+
+  // Decile Summary
+  const decileSummary = useMemo(() => {
+    return filteredData.reduce((acc, row) => {
+      acc.d1.keluarga += (row.d1_keluarga || 0)
+      acc.d1.individu += (row.d1_individu || 0)
+      
+      acc.d2.keluarga += (row.d2_keluarga || 0)
+      acc.d2.individu += (row.d2_individu || 0)
+      
+      acc.d3.keluarga += (row.d3_keluarga || 0)
+      acc.d3.individu += (row.d3_individu || 0)
+      
+      acc.d4.keluarga += (row.d4_keluarga || 0)
+      acc.d4.individu += (row.d4_individu || 0)
+      
+      acc.d5.keluarga += (row.d5_keluarga || 0)
+      acc.d5.individu += (row.d5_individu || 0)
+      
+      acc.d6_10.keluarga += (row.d6_10_keluarga || 0)
+      acc.d6_10.individu += (row.d6_10_individu || 0)
+
+      acc.belum_peringkat.keluarga += (row.belum_peringkat_keluarga || 0)
+      acc.belum_peringkat.individu += (row.belum_peringkat_individu || 0)
+      
+      return acc
+    }, { 
+      d1: { keluarga: 0, individu: 0 }, 
+      d2: { keluarga: 0, individu: 0 }, 
+      d3: { keluarga: 0, individu: 0 }, 
+      d4: { keluarga: 0, individu: 0 }, 
+      d5: { keluarga: 0, individu: 0 }, 
+      d6_10: { keluarga: 0, individu: 0 }, 
+      belum_peringkat: { keluarga: 0, individu: 0 } 
+    })
+  }, [filteredData]);
 
   // RBAC control
   const isSuperuser = role === 'IAM & ADMIN'
@@ -48,6 +111,123 @@ export function DtsenTable({ data, role }: { data: any[], role: string }) {
 
   return (
     <>
+      {/* Top Control Bar */}
+      <div className="flex flex-col md:flex-row gap-4 mb-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
+        <div className="flex-1 relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
+          <input 
+            type="text" 
+            placeholder="Cari Kapanewon atau Kalurahan..." 
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+          />
+        </div>
+        <select 
+          value={selectedKapanewon} 
+          onChange={(e) => {
+            setSelectedKapanewon(e.target.value);
+            setSelectedKalurahan(''); // reset kalurahan when kapanewon changes
+          }}
+          className="border border-slate-200 rounded-lg px-4 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
+        >
+          <option value="">Semua Kapanewon</option>
+          {kapanewonList.map(k => <option key={k as string} value={k as string}>{k as string}</option>)}
+        </select>
+        <select 
+          value={selectedKalurahan} 
+          onChange={(e) => setSelectedKalurahan(e.target.value)}
+          disabled={!selectedKapanewon}
+          className="border border-slate-200 rounded-lg px-4 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 disabled:bg-slate-50 disabled:text-slate-400"
+        >
+          <option value="">Semua Kalurahan</option>
+          {kalurahanList.map(k => <option key={k as string} value={k as string}>{k as string}</option>)}
+        </select>
+        <button 
+          onClick={() => {
+            setSearchQuery('');
+            setSelectedKapanewon('');
+            setSelectedKalurahan('');
+          }}
+          className="flex items-center justify-center gap-2 px-4 py-2 text-sm font-medium text-slate-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors border border-transparent"
+        >
+          <RefreshCcw size={16} /> Reset Filter
+        </button>
+      </div>
+
+      {/* Summary Ribbon */}
+      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3 mb-6">
+        {[
+          { label: 'Desil 1', key: 'd1', stats: decileSummary.d1 },
+          { label: 'Desil 2', key: 'd2', stats: decileSummary.d2 },
+          { label: 'Desil 3', key: 'd3', stats: decileSummary.d3 },
+          { label: 'Desil 4', key: 'd4', stats: decileSummary.d4 },
+          { label: 'Desil 5', key: 'd5', stats: decileSummary.d5 },
+          { label: 'Desil 6-10', key: 'd6_10', stats: decileSummary.d6_10 },
+          { label: 'Belum Peringkat', key: 'belum_peringkat', stats: decileSummary.belum_peringkat },
+        ].map(item => {
+          const isSelected = selectedRibbonDeciles.includes(item.key);
+          return (
+            <button 
+              key={item.label} 
+              onClick={() => setSelectedRibbonDeciles(prev => prev.includes(item.key) ? prev.filter(k => k !== item.key) : [...prev, item.key])}
+              className={`p-3 border rounded-xl flex flex-col gap-2 relative transition-all text-left ${
+                isSelected 
+                  ? 'ring-2 ring-red-600 bg-red-50/50 shadow-md border-transparent'
+                  : 'bg-white border-slate-200 hover:border-red-300 shadow-sm hover:shadow-md'
+              }`}
+            >
+              {isSelected && <CheckCircle size={16} className="text-red-600 absolute top-3 right-3" />}
+              <h4 className="text-xs font-extrabold text-slate-700 uppercase tracking-wider border-b border-slate-100 pb-1.5 text-center w-full">
+                {item.label}
+              </h4>
+              <div className="grid grid-cols-2 gap-2 text-center mt-1 w-full">
+                <div className="flex flex-col">
+                  <span className="text-[11px] text-slate-500">Keluarga</span>
+                  <span className="text-sm font-bold text-red-600">{item.stats.keluarga.toLocaleString('id-ID')}</span>
+                </div>
+                <div className="flex flex-col border-l border-slate-100">
+                  <span className="text-[11px] text-slate-500">Individu</span>
+                  <span className="text-sm font-bold text-blue-600">{item.stats.individu.toLocaleString('id-ID')}</span>
+                </div>
+              </div>
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Dynamic Banner */}
+      {selectedRibbonDeciles.length > 0 && (() => {
+        const totalSelectedKeluarga = selectedRibbonDeciles.reduce((sum, key) => sum + ((decileSummary as any)[key]?.keluarga || 0), 0);
+        const totalSelectedIndividu = selectedRibbonDeciles.reduce((sum, key) => sum + ((decileSummary as any)[key]?.individu || 0), 0);
+        
+        return (
+          <div className="mb-6 p-4 bg-slate-800 text-white rounded-xl shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between border-l-4 border-red-500 animate-in slide-in-from-top-4 gap-4">
+            <div>
+              <p className="text-slate-300 text-xs font-semibold uppercase tracking-wider mb-1">Total Kalkulasi Kustom</p>
+              <h3 className="text-sm font-medium">Total Gabungan: {selectedRibbonDeciles.length} Kelompok Terpilih</h3>
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="flex flex-col">
+                <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Keluarga</span>
+                <span className="text-xl font-bold">{totalSelectedKeluarga.toLocaleString('id-ID')}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Individu</span>
+                <span className="text-xl font-bold">{totalSelectedIndividu.toLocaleString('id-ID')}</span>
+              </div>
+              <button 
+                onClick={() => setSelectedRibbonDeciles([])}
+                className="ml-2 flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold rounded-lg transition-colors"
+              >
+                <X size={14} />
+                Reset
+              </button>
+            </div>
+          </div>
+        )
+      })()}
+
       <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto overflow-y-auto max-h-[65vh]">
           <table className="w-full text-sm text-left border-collapse relative">
@@ -90,14 +270,14 @@ export function DtsenTable({ data, role }: { data: any[], role: string }) {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {data.length === 0 ? (
+              {filteredData.length === 0 ? (
                 <tr>
                   <td colSpan={23} className="px-4 py-12 text-center text-gray-500 bg-gray-50/50">
-                    Tidak ada data rekap ditemukan.
+                    Tidak ada data rekap ditemukan sesuai filter.
                   </td>
                 </tr>
               ) : (
-                data.map((row) => (
+                filteredData.map((row) => (
                   <tr key={row.id} className="hover:bg-red-50/30 transition-colors">
                     <td className="px-4 py-3 border-r border-gray-100 text-gray-600 whitespace-nowrap text-center">{row.periode}</td>
                     <td className="px-4 py-3 border-r border-gray-100 text-gray-600 whitespace-nowrap text-center">{row.tahun}</td>
