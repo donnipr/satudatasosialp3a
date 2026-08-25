@@ -175,13 +175,13 @@ export function BudgetOverview() {
                   axisLine={false}
                 />
                 <YAxis 
-                  tickFormatter={(val) => `Rp${(val / 1000000).toFixed(0)}M`} 
+                  tickFormatter={(val: any) => `Rp${(Number(val) / 1000000).toFixed(0)}M`} 
                   tick={{ fontSize: 11, fill: '#64748b' }}
                   tickLine={false}
                   axisLine={false}
                 />
                 <RechartsTooltip 
-                  formatter={(val: number) => formatRp(val)}
+                  formatter={(val: any) => formatRp(Number(val) || 0)}
                   contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                 />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '12px', paddingTop: '20px' }} />
@@ -212,7 +212,7 @@ export function BudgetOverview() {
                   ))}
                 </Pie>
                 <RechartsTooltip 
-                  formatter={(val: number) => formatRp(val)}
+                  formatter={(val: any) => formatRp(Number(val) || 0)}
                   contentStyle={{ borderRadius: '8px', border: '1px solid #e2e8f0', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
                 />
                 <Legend 
