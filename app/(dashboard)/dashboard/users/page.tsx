@@ -1,6 +1,7 @@
 import UserManagementClient from './_components/UserManagementClient'
 import { createClient } from '@/lib/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase/admin'
+import { redirect } from 'next/navigation'
 
 export const dynamic = 'force-dynamic'
 
@@ -22,6 +23,10 @@ export default async function UsersPage() {
       const { data: profile } = await supabase.from('profiles').select('role').eq('id', user.id).single()
       if (profile?.role) currentUserRole = profile.role
     }
+  }
+
+  if (currentUserRole !== 'IAM & ADMIN') {
+    redirect('/dashboard')
   }
 
   // Fetch from public profiles table synced with Auth using Admin client to bypass RLS

@@ -76,6 +76,13 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed, isMobileOpen, setIs
     }
   }
 
+  const filteredNavItems = navItems.filter(item => {
+    if ((item.title === 'Manajemen Pengguna' || item.href === '/dashboard/users') && role !== 'IAM & ADMIN') {
+      return false;
+    }
+    return true;
+  });
+
   return (
     <aside className={`
       fixed inset-y-0 left-0 z-50 h-full bg-white border-r border-slate-200 flex flex-col transition-all duration-300 ease-in-out
@@ -125,7 +132,7 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed, isMobileOpen, setIs
 
       {/* Navigation Links */}
       <nav className={`py-6 space-y-1 flex-1 overflow-y-auto ${isCollapsed ? 'px-2' : 'px-4'}`}>
-        {navItems.map((item) => {
+        {filteredNavItems.map((item) => {
           if (item.subItems) {
             // Check if any sub-item is active
             const isParentActive = item.subItems.some(sub => pathname === sub.href || pathname.startsWith(sub.href))

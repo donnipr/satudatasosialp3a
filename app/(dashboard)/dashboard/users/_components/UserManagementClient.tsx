@@ -1,7 +1,25 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Plus, X, Edit, Trash2, Shield, User, Key, Mail, Lock, Loader2 } from 'lucide-react'
+import { Plus, X, Edit, Trash2, Shield, User, Key, Mail, Lock, Loader2, ShieldCheck } from 'lucide-react'
+
+export const APP_MENUS = [
+  { id: 'dashboard', label: 'Dashboard Overview', path: '/dashboard' },
+  { id: 'dtsen', label: 'Rekap DTSEN', path: '/dashboard/dtsen', subMenus: [
+      { id: 'dtsen_data', label: 'Manajemen Data' },
+      { id: 'dtsen_stats', label: 'Analisis Statistik' }
+    ]
+  },
+  { id: 'bansos', label: 'Bantuan Sosial', path: '/dashboard/bantuan-sosial' },
+  { id: 'gis', label: 'Peta GIS', path: '/dashboard/gis' },
+  { id: 'program', label: 'Program Kegiatan', path: '/dashboard/program', subMenus: [
+      { id: 'program_mindmap', label: 'Mind Map' },
+      { id: 'program_data', label: 'Data Kegiatan' },
+      { id: 'program_settings', label: 'Pengaturan Sumber Data' }
+    ]
+  },
+  { id: 'users', label: 'Manajemen Pengguna', path: '/dashboard/users' },
+];
 import { addUserAction, updateUserAction, deleteUserAction } from '@/actions/user.actions'
 
 type UserRole = 'user' | 'IAM & ADMIN'
@@ -14,6 +32,7 @@ interface UserData {
   role: UserRole
   status: UserStatus
   createdAt: string
+  permissions?: string[]
 }
 
 export default function UserManagementClient({ initialUsers, currentUserRole }: { initialUsers: UserData[], currentUserRole: string }) {
@@ -22,6 +41,11 @@ export default function UserManagementClient({ initialUsers, currentUserRole }: 
   const [editingUserId, setEditingUserId] = useState<string | null>(null)
   const [isPending, startTransition] = useTransition()
   
+  // Permissions State
+  const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false);
+  const [selectedUserForPermissions, setSelectedUserForPermissions] = useState<UserData | null>(null);
+  const [tempPermissions, setTempPermissions] = useState<string[]>([]);
+
   // Form state
   const [formData, setFormData] = useState({
     name: '',
@@ -30,6 +54,85 @@ export default function UserManagementClient({ initialUsers, currentUserRole }: 
     role: 'user' as UserRole,
     status: 'Aktif' as UserStatus
   })
+
+  const handleOpenPermissionsModal = (user: UserData) => {
+    if (currentUserRole !== 'IAM & ADMIN') {
+      alert("Anda tidak memiliki izin untuk melakukan aksi ini");
+      return;
+    }
+    setSelectedUserForPermissions(user);
+    setTempPermissions(user.permissions || []);
+    setIsPermissionsModalOpen(true);
+  };
+
+  const handleClosePermissionsModal = () => {
+    setIsPermissionsModalOpen(false);
+    setSelectedUserForPermissions(null);
+    setTempPermissions([]);
+  };
+
+  const handleSavePermissions = () => {
+    if (selectedUserForPermissions) {
+      setUsers(users.map(u => 
+        u.id === selectedUserForPermissions.id 
+          ? { ...u, permissions: tempPermissions } 
+          : u
+      ));
+    }
+    handleClosePermissionsModal();
+  };
+
+  const togglePermission = (menuId: string, isParent: boolean = true, parentId?: string) => {
+    setTempPermissions(prev => {
+      let newPerms = [...prev];
+      if (newPerms.includes(menuId)) {
+        newPerms = newPerms.filter(id => id !== menuId);
+        if (isParent) {
+          const parentMenu = APP_MENUS.find(m => m.id === menuId);
+          if (parentMenu?.subMenus) {
+            const childIds = parentMenu.subMenus.map(sub => sub.id);
+            newPerms = newPerms.filter(id => !childIds.includes(id));
+          }
+        }
+      } else {
+        newPerms.push(menuId);
+        if (isParent) {
+          const parentMenu = APP_MENUS.find(m => m.id === menuId);
+          if (parentMenu?.subMenus) {
+            parentMenu.subMenus.forEach(sub => {
+              if (!newPerms.includes(sub.id)) {
+                newPerms.push(sub.id);
+              }
+            });
+          }
+        }
+        if (!isParent && parentId && !newPerms.includes(parentId)) {
+          newPerms.push(parentId);
+        }
+      }
+      return newPerms;
+    });
+  };
+
+  const handleSelectAllPermissions = () => {
+    const allPerms: string[] = [];
+    APP_MENUS.forEach(menu => {
+      allPerms.push(menu.id);
+      if (menu.subMenus) {
+        menu.subMenus.forEach(sub => allPerms.push(sub.id));
+      }
+    });
+    setTempPermissions(allPerms);
+  };
+
+  const handleViewOnlyPermissions = () => {
+    const viewOnlyPerms = ['dashboard', 'dtsen', 'dtsen_stats', 'bansos', 'gis', 'program', 'program_mindmap', 'program_data'];
+    setTempPermissions(viewOnlyPerms);
+  };
+
+  const handleResetPermissions = () => {
+    setTempPermissions([]);
+  };
 
   const handleOpenModal = (user?: UserData) => {
     if (currentUserRole !== 'IAM & ADMIN') {
@@ -168,6 +271,13 @@ export default function UserManagementClient({ initialUsers, currentUserRole }: 
                 {currentUserRole === 'IAM & ADMIN' && (
                   <td className="px-6 py-4 text-center">
                     <div className="flex items-center justify-center gap-3">
+                      <button 
+                        onClick={() => handleOpenPermissionsModal(user)}
+                        className="text-gray-400 hover:text-green-600 transition-colors" 
+                        title="Kelola Hak Akses"
+                      >
+                        <ShieldCheck size={16} />
+                      </button>
                       <button 
                         onClick={() => handleOpenModal(user)}
                         className="text-gray-400 hover:text-blue-600 transition-colors" 
@@ -315,6 +425,102 @@ export default function UserManagementClient({ initialUsers, currentUserRole }: 
               </div>
 
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Permissions Modal */}
+      {isPermissionsModalOpen && selectedUserForPermissions && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4 bg-gray-900/40 backdrop-blur-sm animate-in fade-in duration-200">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in zoom-in-95 duration-200 flex flex-col max-h-[90vh]">
+            
+            <div className="flex justify-between items-center p-5 border-b border-gray-100 shrink-0">
+              <h3 className="font-semibold text-lg text-gray-900">
+                Pengaturan Hak Akses Menu - {selectedUserForPermissions.name}
+              </h3>
+              <button 
+                onClick={handleClosePermissionsModal}
+                className="text-gray-400 hover:text-gray-600 hover:bg-gray-100 p-1.5 rounded-lg transition-colors"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            
+            <div className="p-5 overflow-y-auto flex-1">
+              <div className="flex gap-2 mb-6 flex-wrap">
+                <button
+                  onClick={handleSelectAllPermissions}
+                  className="px-3 py-1.5 bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm rounded-full font-medium transition-colors shadow-sm border border-gray-200"
+                >
+                  Pilih Semua (Full Access)
+                </button>
+                <button
+                  onClick={handleViewOnlyPermissions}
+                  className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 text-sm rounded-full font-medium transition-colors shadow-sm border border-blue-100"
+                >
+                  Hanya Lihat (View Only)
+                </button>
+                <button
+                  onClick={handleResetPermissions}
+                  className="px-3 py-1.5 bg-red-50 hover:bg-red-100 text-red-700 text-sm rounded-full font-medium transition-colors shadow-sm border border-red-100"
+                >
+                  Reset
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {APP_MENUS.map(menu => {
+                  const isMenuChecked = tempPermissions.includes(menu.id);
+                  return (
+                    <div key={menu.id} className="border border-gray-200 rounded-lg p-4 bg-gray-50/50">
+                      <label className="flex items-center gap-3 cursor-pointer">
+                        <input
+                          type="checkbox"
+                          checked={isMenuChecked}
+                          onChange={() => togglePermission(menu.id, true)}
+                          className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500"
+                        />
+                        <span className="font-medium text-gray-800">{menu.label}</span>
+                      </label>
+                      
+                      {menu.subMenus && (
+                        <div className="mt-3 ml-7 grid grid-cols-1 sm:grid-cols-2 gap-3">
+                          {menu.subMenus.map(sub => (
+                            <label key={sub.id} className="flex items-center gap-3 cursor-pointer">
+                              <input
+                                type="checkbox"
+                                checked={tempPermissions.includes(sub.id)}
+                                onChange={() => togglePermission(sub.id, false, menu.id)}
+                                disabled={!isMenuChecked}
+                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500 disabled:opacity-50"
+                              />
+                              <span className={`text-sm ${isMenuChecked ? 'text-gray-600' : 'text-gray-400'}`}>
+                                {sub.label}
+                              </span>
+                            </label>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="p-5 border-t border-gray-100 shrink-0 flex justify-end gap-3 bg-white">
+              <button 
+                onClick={handleClosePermissionsModal}
+                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                Batal
+              </button>
+              <button 
+                onClick={handleSavePermissions}
+                className="px-4 py-2 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors shadow-sm"
+              >
+                Simpan Perubahan Hak Akses
+              </button>
+            </div>
           </div>
         </div>
       )}
