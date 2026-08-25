@@ -1,10 +1,17 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Users, Home, MapPin, ChevronRight, Map, BarChart3 } from 'lucide-react'
+import { Users, Home, MapPin, ChevronRight, Map, BarChart3, CheckCircle, X } from 'lucide-react'
 
-export function DashboardClient({ data, currentTahun, currentPeriode }: { data: any[], currentTahun: number, currentPeriode: string }) {
+export function DtsenOverview({ data, currentTahun, currentPeriode }: { data: any[], currentTahun: number, currentPeriode: string }) {
   const [selectedKapanewon, setSelectedKapanewon] = useState<string | null>(null)
+  const [selectedDeciles, setSelectedDeciles] = useState<string[]>([])
+
+  const toggleDecile = (key: string) => {
+    setSelectedDeciles(prev => 
+      prev.includes(key) ? prev.filter(k => k !== key) : [...prev, key]
+    );
+  };
 
   // Get unique Kapanewon list and calculate their individual totals
   const kapanewonStats = useMemo(() => {
@@ -57,19 +64,7 @@ export function DashboardClient({ data, currentTahun, currentPeriode }: { data: 
   })
 
   return (
-    <div className="space-y-6">
-      
-      {/* Dashboard Title & Meta */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900 tracking-tight">Dashboard Overview</h1>
-        <p className="text-gray-500 mt-2">
-          Menampilkan data terbaru dari rekapitulasi DTSEN Kabupaten Gunungkidul.
-        </p>
-        <div className="inline-block mt-3 px-3 py-1 bg-gray-100 text-gray-700 font-medium text-sm rounded-lg border border-gray-200">
-          Tahun: {currentTahun} • {currentPeriode}
-        </div>
-      </div>
-
+    <div className="space-y-6 animate-in fade-in duration-300">
       {/* Kapanewon Quick Filter & Stats */}
       <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-200">
         <div className="flex items-center justify-between mb-4">
@@ -204,17 +199,28 @@ export function DashboardClient({ data, currentTahun, currentPeriode }: { data: 
         </h4>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           {[
-            { label: 'Desil 1', k: totals.d1Keluarga, i: totals.d1Individu, color: 'border-red-200 bg-white' },
-            { label: 'Desil 2', k: totals.d2Keluarga, i: totals.d2Individu, color: 'border-orange-200 bg-white' },
-            { label: 'Desil 3', k: totals.d3Keluarga, i: totals.d3Individu, color: 'border-yellow-200 bg-white' },
-            { label: 'Desil 4', k: totals.d4Keluarga, i: totals.d4Individu, color: 'border-green-200 bg-white' },
-            { label: 'Desil 5', k: totals.d5Keluarga, i: totals.d5Individu, color: 'border-teal-200 bg-white' },
-            { label: 'Desil 6-10', k: totals.d6_10Keluarga, i: totals.d6_10Individu, color: 'border-blue-200 bg-white' },
-            { label: 'Belum Peringkat', k: totals.belumPeringkatKeluarga, i: totals.belumPeringkatIndividu, color: 'border-gray-200 bg-gray-50' },
-          ].map((item, idx) => (
-            <div key={idx} className={`rounded-xl border ${item.color} p-4 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow`}>
-              <h5 className="text-sm font-bold text-gray-800 mb-3 text-center border-b pb-2 border-gray-100">{item.label}</h5>
-              <div className="space-y-2">
+            { label: 'Desil 1', key: 'd1', k: totals.d1Keluarga, i: totals.d1Individu, color: 'border-red-200 bg-white' },
+            { label: 'Desil 2', key: 'd2', k: totals.d2Keluarga, i: totals.d2Individu, color: 'border-orange-200 bg-white' },
+            { label: 'Desil 3', key: 'd3', k: totals.d3Keluarga, i: totals.d3Individu, color: 'border-yellow-200 bg-white' },
+            { label: 'Desil 4', key: 'd4', k: totals.d4Keluarga, i: totals.d4Individu, color: 'border-green-200 bg-white' },
+            { label: 'Desil 5', key: 'd5', k: totals.d5Keluarga, i: totals.d5Individu, color: 'border-teal-200 bg-white' },
+            { label: 'Desil 6-10', key: 'd6_10', k: totals.d6_10Keluarga, i: totals.d6_10Individu, color: 'border-blue-200 bg-white' },
+            { label: 'Belum Peringkat', key: 'belumPeringkat', k: totals.belumPeringkatKeluarga, i: totals.belumPeringkatIndividu, color: 'border-gray-200 bg-gray-50' },
+          ].map((item, idx) => {
+            const isSelected = selectedDeciles.includes(item.key);
+            return (
+            <button 
+              key={idx} 
+              onClick={() => toggleDecile(item.key)}
+              className={`rounded-xl border p-4 flex flex-col justify-between text-left relative transition-all ${
+                isSelected 
+                  ? 'ring-2 ring-red-600 bg-red-50/50 shadow-md border-transparent'
+                  : `${item.color} hover:shadow-md hover:border-red-300 shadow-sm`
+              }`}
+            >
+              {isSelected && <CheckCircle size={16} className="text-red-600 absolute top-3 right-3" />}
+              <h5 className="text-sm font-bold text-gray-800 mb-3 text-center border-b pb-2 border-gray-100 w-full">{item.label}</h5>
+              <div className="space-y-2 w-full">
                 <div className="flex justify-between items-center text-xs">
                   <span className="text-gray-500 font-medium flex items-center gap-1.5">
                     <Home size={12} className="text-gray-400" /> Keluarga
@@ -228,9 +234,52 @@ export function DashboardClient({ data, currentTahun, currentPeriode }: { data: 
                   <span className="font-semibold text-gray-900">{item.i.toLocaleString('id-ID')}</span>
                 </div>
               </div>
-            </div>
-          ))}
+            </button>
+          )})}
         </div>
+
+      {/* Dynamic Banner */}
+      {selectedDeciles.length > 0 && (() => {
+        const selectedItems = [
+          { label: 'Desil 1', key: 'd1', k: totals.d1Keluarga, i: totals.d1Individu },
+          { label: 'Desil 2', key: 'd2', k: totals.d2Keluarga, i: totals.d2Individu },
+          { label: 'Desil 3', key: 'd3', k: totals.d3Keluarga, i: totals.d3Individu },
+          { label: 'Desil 4', key: 'd4', k: totals.d4Keluarga, i: totals.d4Individu },
+          { label: 'Desil 5', key: 'd5', k: totals.d5Keluarga, i: totals.d5Individu },
+          { label: 'Desil 6-10', key: 'd6_10', k: totals.d6_10Keluarga, i: totals.d6_10Individu },
+          { label: 'Belum Peringkat', key: 'belumPeringkat', k: totals.belumPeringkatKeluarga, i: totals.belumPeringkatIndividu },
+        ].filter(item => selectedDeciles.includes(item.key));
+        
+        const totalK = selectedItems.reduce((sum, item) => sum + item.k, 0);
+        const totalI = selectedItems.reduce((sum, item) => sum + item.i, 0);
+        const labels = selectedItems.map(item => item.label).join(', ');
+
+        return (
+          <div className="mt-6 p-4 bg-slate-800 text-white rounded-xl shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between border-l-4 border-red-500 animate-in slide-in-from-bottom-4 gap-4">
+            <div>
+              <p className="text-slate-300 text-xs font-semibold uppercase tracking-wider mb-1">Total Kalkulasi Kustom</p>
+              <h3 className="text-sm font-medium">Total untuk {labels}</h3>
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="flex flex-col">
+                <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Keluarga</span>
+                <span className="text-xl font-bold">{totalK.toLocaleString('id-ID')}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Individu</span>
+                <span className="text-xl font-bold">{totalI.toLocaleString('id-ID')}</span>
+              </div>
+              <button 
+                onClick={() => setSelectedDeciles([])}
+                className="ml-2 flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold rounded-lg transition-colors"
+              >
+                <X size={14} />
+                Reset
+              </button>
+            </div>
+          </div>
+        )
+      })()}
       </div>
       
       {/* Charts Placeholder */}
@@ -250,7 +299,6 @@ export function DashboardClient({ data, currentTahun, currentPeriode }: { data: 
           </div>
         </div>
       </div>
-
     </div>
   )
 }

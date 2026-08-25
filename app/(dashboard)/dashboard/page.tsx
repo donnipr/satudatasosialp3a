@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { DashboardClient } from './_components/DashboardClient'
+import { DashboardTabsClient } from '@/components/dashboard/DashboardTabsClient'
 
 export const dynamic = 'force-dynamic'
 
@@ -29,7 +29,7 @@ export default async function DashboardPage() {
 
   return (
     <div className="max-w-7xl mx-auto">
-      <DashboardClient data={data} currentTahun={currentTahun} currentPeriode={currentPeriode} />
+      <DashboardTabsClient data={data} currentTahun={currentTahun} currentPeriode={currentPeriode} />
     </div>
   )
 }

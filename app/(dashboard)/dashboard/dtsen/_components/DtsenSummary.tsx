@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Users, Home, Map, ChevronRight, BarChart3, TrendingUp, TrendingDown, Minus } from 'lucide-react'
+import { Users, Home, Map, ChevronRight, BarChart3, TrendingUp, TrendingDown, Minus, CheckCircle, X } from 'lucide-react'
 
 export function DtsenSummary({ data, prevData = [] }: { data: any[], prevData?: any[] }) {
   const [selectedKapanewon, setSelectedKapanewon] = useState<string | null>(null)
+  const [selectedDeciles, setSelectedDeciles] = useState<string[]>([])
 
   // Get unique Kapanewon list and calculate their individual totals
   const kapanewonStats = useMemo(() => {
@@ -228,33 +229,88 @@ export function DtsenSummary({ data, prevData = [] }: { data: any[], prevData?: 
         </h4>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           {[
-            { label: 'Desil 1', k: totals.d1Keluarga, i: totals.d1Individu, color: 'border-red-200 bg-white' },
-            { label: 'Desil 2', k: totals.d2Keluarga, i: totals.d2Individu, color: 'border-orange-200 bg-white' },
-            { label: 'Desil 3', k: totals.d3Keluarga, i: totals.d3Individu, color: 'border-yellow-200 bg-white' },
-            { label: 'Desil 4', k: totals.d4Keluarga, i: totals.d4Individu, color: 'border-green-200 bg-white' },
-            { label: 'Desil 5', k: totals.d5Keluarga, i: totals.d5Individu, color: 'border-teal-200 bg-white' },
-            { label: 'Desil 6-10', k: totals.d6_10Keluarga, i: totals.d6_10Individu, color: 'border-blue-200 bg-white' },
-            { label: 'Belum Peringkat', k: totals.belumPeringkatKeluarga, i: totals.belumPeringkatIndividu, color: 'border-gray-200 bg-gray-50' },
-          ].map((item, idx) => (
-            <div key={idx} className={`rounded-xl border ${item.color} p-4 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow`}>
-              <h5 className="text-sm font-bold text-gray-800 mb-3 text-center border-b pb-2 border-gray-100">{item.label}</h5>
-              <div className="space-y-2">
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-gray-500 font-medium flex items-center gap-1.5">
-                    <Home size={12} className="text-gray-400" /> Keluarga
-                  </span>
-                  <span className="font-semibold text-gray-900">{item.k.toLocaleString('id-ID')}</span>
+            { label: 'Desil 1', key: 'd1', k: totals.d1Keluarga, i: totals.d1Individu, color: 'border-red-200' },
+            { label: 'Desil 2', key: 'd2', k: totals.d2Keluarga, i: totals.d2Individu, color: 'border-orange-200' },
+            { label: 'Desil 3', key: 'd3', k: totals.d3Keluarga, i: totals.d3Individu, color: 'border-yellow-200' },
+            { label: 'Desil 4', key: 'd4', k: totals.d4Keluarga, i: totals.d4Individu, color: 'border-green-200' },
+            { label: 'Desil 5', key: 'd5', k: totals.d5Keluarga, i: totals.d5Individu, color: 'border-teal-200' },
+            { label: 'Desil 6-10', key: 'd6_10', k: totals.d6_10Keluarga, i: totals.d6_10Individu, color: 'border-blue-200' },
+            { label: 'Belum Peringkat', key: 'belumPeringkat', k: totals.belumPeringkatKeluarga, i: totals.belumPeringkatIndividu, color: 'border-gray-200' },
+          ].map((item) => {
+            const isSelected = selectedDeciles.includes(item.key);
+            return (
+              <button 
+                key={item.key} 
+                onClick={() => setSelectedDeciles(prev => prev.includes(item.key) ? prev.filter(k => k !== item.key) : [...prev, item.key])}
+                className={`rounded-xl border p-4 flex flex-col justify-between text-left relative transition-all ${
+                  isSelected 
+                    ? 'ring-2 ring-red-500 bg-red-50/20 shadow-md border-transparent'
+                    : `bg-white ${item.color} hover:shadow-md hover:border-red-300 shadow-sm`
+                }`}
+              >
+                {isSelected && <CheckCircle size={16} className="text-red-500 absolute top-3 right-3" />}
+                <h5 className="text-sm font-bold text-gray-800 mb-3 text-center border-b pb-2 border-gray-100 w-full">{item.label}</h5>
+                <div className="space-y-2 w-full">
+                  <div className="flex justify-between items-center text-xs">
+                    <span className="text-gray-500 font-medium flex items-center gap-1.5">
+                      <Home size={12} className="text-gray-400" /> Keluarga
+                    </span>
+                    <span className="font-semibold text-gray-900">{item.k.toLocaleString('id-ID')}</span>
+                  </div>
+                  <div className="flex justify-between items-center text-xs mt-1">
+                    <span className="text-gray-500 font-medium flex items-center gap-1.5">
+                      <Users size={12} className="text-gray-400" /> Individu
+                    </span>
+                    <span className="font-semibold text-gray-900">{item.i.toLocaleString('id-ID')}</span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center text-xs">
-                  <span className="text-gray-500 font-medium flex items-center gap-1.5">
-                    <Users size={12} className="text-gray-400" /> Individu
-                  </span>
-                  <span className="font-semibold text-gray-900">{item.i.toLocaleString('id-ID')}</span>
-                </div>
-              </div>
-            </div>
-          ))}
+              </button>
+            )
+          })}
         </div>
+
+      {/* Dynamic Banner */}
+      {selectedDeciles.length > 0 && (() => {
+        const selectedItems = [
+          { label: 'Desil 1', key: 'd1', k: totals.d1Keluarga, i: totals.d1Individu },
+          { label: 'Desil 2', key: 'd2', k: totals.d2Keluarga, i: totals.d2Individu },
+          { label: 'Desil 3', key: 'd3', k: totals.d3Keluarga, i: totals.d3Individu },
+          { label: 'Desil 4', key: 'd4', k: totals.d4Keluarga, i: totals.d4Individu },
+          { label: 'Desil 5', key: 'd5', k: totals.d5Keluarga, i: totals.d5Individu },
+          { label: 'Desil 6-10', key: 'd6_10', k: totals.d6_10Keluarga, i: totals.d6_10Individu },
+          { label: 'Belum Peringkat', key: 'belumPeringkat', k: totals.belumPeringkatKeluarga, i: totals.belumPeringkatIndividu },
+        ].filter(item => selectedDeciles.includes(item.key));
+        
+        const totalK = selectedItems.reduce((sum, item) => sum + item.k, 0);
+        const totalI = selectedItems.reduce((sum, item) => sum + item.i, 0);
+        const labels = selectedItems.map(item => item.label).join(', ');
+
+        return (
+          <div className="mt-6 p-4 bg-slate-800 text-white rounded-xl shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between border-l-4 border-red-500 animate-in slide-in-from-bottom-4 gap-4">
+            <div>
+              <p className="text-slate-300 text-xs font-semibold uppercase tracking-wider mb-1">Total Kalkulasi Kustom</p>
+              <h3 className="text-sm font-medium">Total untuk {labels}</h3>
+            </div>
+            <div className="flex items-center gap-6">
+              <div className="flex flex-col">
+                <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Keluarga</span>
+                <span className="text-xl font-bold">{totalK.toLocaleString('id-ID')}</span>
+              </div>
+              <div className="flex flex-col">
+                <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Individu</span>
+                <span className="text-xl font-bold">{totalI.toLocaleString('id-ID')}</span>
+              </div>
+              <button 
+                onClick={() => setSelectedDeciles([])}
+                className="ml-2 flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold rounded-lg transition-colors"
+              >
+                <X size={14} />
+                Reset
+              </button>
+            </div>
+          </div>
+        )
+      })()}
       </div>
 
       {/* Dynamic Charts Section */}
