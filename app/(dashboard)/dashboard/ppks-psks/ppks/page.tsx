@@ -570,27 +570,26 @@ export default function DataPPKSPage() {
       )}
 
       {/* Wide Data Table */}
-      <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-sm text-slate-600 whitespace-nowrap relative">
+      <div className="w-full overflow-x-auto bg-white rounded-xl shadow-sm border border-slate-200">
+        <table className="w-full min-w-max text-sm text-left text-slate-600">
             <thead className="bg-slate-50 text-slate-700 text-xs uppercase font-semibold border-b border-slate-200">
               <tr>
                 {/* Sticky Columns Header */}
                 <th 
-                  className="px-4 py-4 sticky left-0 z-20 bg-slate-50 border-r border-slate-200 shadow-[1px_0_0_0_#e2e8f0] text-center"
+                  className="sticky left-0 bg-white z-20 px-4 py-3 border-b text-center"
                   style={{ minWidth: '80px' }}
                 >
                   Tahun
                 </th>
                 <th 
-                  className="px-4 py-4 sticky z-20 bg-slate-50 border-r border-slate-200 shadow-[1px_0_0_0_#e2e8f0]"
-                  style={{ left: '80px', minWidth: '140px' }}
+                  className="sticky left-[70px] md:left-[80px] bg-white z-20 px-4 py-3 border-b"
+                  style={{ minWidth: '140px' }}
                 >
                   Kapanewon
                 </th>
                 <th 
-                  className="px-4 py-4 sticky z-20 bg-slate-50 border-r border-slate-200 shadow-[1px_0_0_0_#e2e8f0]"
-                  style={{ left: '220px', minWidth: '140px' }}
+                  className="sticky left-[170px] md:left-[200px] bg-white z-20 px-4 py-3 border-b"
+                  style={{ minWidth: '140px' }}
                 >
                   Kalurahan
                 </th>
@@ -613,7 +612,7 @@ export default function DataPPKSPage() {
                 )}
                 
                 {/* Aksi Header Sticky Right */}
-                <th className="px-4 py-4 text-center sticky right-0 z-20 bg-slate-50 border-l border-slate-200 shadow-[-1px_0_0_0_#e2e8f0]">
+                <th className="px-4 py-4 text-center sticky right-0 z-20 bg-white border-l border-b border-slate-200 min-w-[100px]">
                   Aksi
                 </th>
               </tr>
@@ -623,20 +622,20 @@ export default function DataPPKSPage() {
                 <tr key={row.id} className="hover:bg-blue-50/50 transition-colors even:bg-slate-50/50 group">
                   {/* Sticky Columns Body */}
                   <td 
-                    className="px-4 py-3 font-medium text-slate-900 sticky left-0 z-10 bg-inherit border-r border-slate-200 group-even:bg-slate-50 group-hover:bg-blue-50/50 shadow-[1px_0_0_0_#e2e8f0] text-center tabular-nums"
+                    className="sticky left-0 bg-white z-10 px-4 py-3 border-b text-center tabular-nums font-medium text-slate-900"
                     style={{ minWidth: '80px' }}
                   >
                     {row.tahun}
                   </td>
                   <td 
-                    className="px-4 py-3 font-medium text-slate-900 sticky z-10 bg-inherit border-r border-slate-200 group-even:bg-slate-50 group-hover:bg-blue-50/50 shadow-[1px_0_0_0_#e2e8f0]"
-                    style={{ left: '80px', minWidth: '140px' }}
+                    className="sticky left-[70px] md:left-[80px] bg-white z-10 px-4 py-3 border-b font-medium text-slate-900"
+                    style={{ minWidth: '140px' }}
                   >
                     {row.kapanewon}
                   </td>
                   <td 
-                    className="px-4 py-3 text-slate-700 sticky z-10 bg-inherit border-r border-slate-200 group-even:bg-slate-50 group-hover:bg-blue-50/50 shadow-[1px_0_0_0_#e2e8f0]"
-                    style={{ left: '220px', minWidth: '140px' }}
+                    className="sticky left-[170px] md:left-[200px] bg-white z-10 px-4 py-3 border-b text-slate-700"
+                    style={{ minWidth: '140px' }}
                   >
                     {row.kalurahan}
                   </td>
@@ -663,7 +662,7 @@ export default function DataPPKSPage() {
                   )}
                   
                   {/* Aksi Column Sticky Right */}
-                  <td className="px-4 py-3 text-center sticky right-0 z-10 bg-inherit border-l border-slate-200 group-even:bg-slate-50 group-hover:bg-blue-50/50 shadow-[-1px_0_0_0_#e2e8f0]">
+                  <td className="px-4 py-3 text-center sticky right-0 z-10 bg-white border-l border-b border-slate-200 min-w-[100px]">
                     <button 
                       onClick={() => row.id ? handleDelete(row.id) : null} 
                       className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors" 
@@ -706,7 +705,6 @@ export default function DataPPKSPage() {
               </tfoot>
             )}
           </table>
-        </div>
       </div>
 
       <div className="mt-4 text-sm text-slate-500 flex justify-between items-center px-1">
