@@ -29,7 +29,7 @@ export interface PPKSRow {
   created_at?: string;
 }
 
-const CATEGORY_MAP: Record<keyof Omit<PPKSRow, 'id' | 'kapanewon' | 'kalurahan' | 'tahun'>, string> = {
+const CATEGORY_MAP: Record<keyof Omit<PPKSRow, 'id' | 'kapanewon' | 'kalurahan' | 'tahun' | 'created_at'>, string> = {
   adk: 'Anak Dengan Kedisabilitasan',
   pd: 'Penyandang Disabilitas',
   abt: 'Anak Balita Terlantar',
@@ -529,7 +529,8 @@ export default function DataPPKSPage() {
           </h4>
           <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8 gap-3">
             {PPKS_CATEGORIES.map((cat, index) => {
-              const count = summaryStats.categoryTotals[cat.id];
+              // FIX: Force TypeScript to treat this as a solid number
+              const count = Number(summaryStats.categoryTotals[cat.id]) || 0;
               const hasData = count > 0;
               
               // Rotating elegant pastel palette for active data
@@ -692,12 +693,12 @@ export default function DataPPKSPage() {
                   {selectedKategori === 'semua' ? (
                     PPKS_CATEGORIES.map(cat => (
                       <td key={cat.id} className="px-4 py-3 text-right text-slate-800 tabular-nums">
-                        {summaryStats.categoryTotals[cat.id].toLocaleString('id-ID')}
+                        {(Number(summaryStats.categoryTotals[cat.id]) || 0).toLocaleString('id-ID')}
                       </td>
                     ))
                   ) : (
                     <td className="px-4 py-3 text-right text-slate-800 bg-blue-100/50 tabular-nums">
-                      {summaryStats.categoryTotals[selectedKategori].toLocaleString('id-ID')}
+                      {(Number(summaryStats.categoryTotals[selectedKategori]) || 0).toLocaleString('id-ID')}
                     </td>
                   )}
                   <td className="sticky right-0 bg-slate-50 z-10 px-4 py-3 border-l border-slate-200"></td>
