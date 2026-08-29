@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, Settings, HeartHandshake, ChevronsLeft, Menu, Network, Layers, ChevronDown, Database } from 'lucide-react'
+import { LayoutDashboard, Users, Settings, HeartHandshake, ChevronsLeft, Menu, Network, Layers, ChevronDown, Database, FolderHeart } from 'lucide-react'
 
 export function Sidebar({ role, isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen }: { role: string; isCollapsed: boolean; setIsCollapsed: (val: boolean) => void; isMobileOpen: boolean; setIsMobileOpen: (val: boolean) => void }) {
   const pathname = usePathname()
@@ -54,6 +54,22 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed, isMobileOpen, setIs
         {
           title: 'Data',
           href: '/dashboard/program-data',
+          icon: Database
+        }
+      ]
+    },
+    {
+      title: 'PPKS & PSKS',
+      icon: FolderHeart,
+      subItems: [
+        {
+          title: 'Data PPKS',
+          href: '/dashboard/ppks-psks/ppks',
+          icon: Database
+        },
+        {
+          title: 'Data PSKS',
+          href: '/dashboard/ppks-psks/psks',
           icon: Database
         }
       ]

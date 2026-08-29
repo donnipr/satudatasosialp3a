@@ -18,6 +18,11 @@ export const APP_MENUS = [
       { id: 'program_settings', label: 'Pengaturan Sumber Data' }
     ]
   },
+  { id: 'ppks_psks', label: 'PPKS & PSKS', path: '/dashboard/ppks-psks', subMenus: [
+      { id: 'ppks_data', label: 'Data PPKS' },
+      { id: 'psks_data', label: 'Data PSKS' }
+    ]
+  },
   { id: 'users', label: 'Manajemen Pengguna', path: '/dashboard/users' },
 ];
 import { addUserAction, updateUserAction, deleteUserAction } from '@/actions/user.actions'
@@ -126,7 +131,7 @@ export default function UserManagementClient({ initialUsers, currentUserRole }: 
   };
 
   const handleViewOnlyPermissions = () => {
-    const viewOnlyPerms = ['dashboard', 'dtsen', 'dtsen_stats', 'bansos', 'gis', 'program', 'program_mindmap', 'program_data'];
+    const viewOnlyPerms = ['dashboard', 'dtsen', 'dtsen_stats', 'bansos', 'gis', 'program', 'program_mindmap', 'program_data', 'ppks_psks', 'ppks_data', 'psks_data'];
     setTempPermissions(viewOnlyPerms);
   };
 
