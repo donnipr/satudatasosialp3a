@@ -570,25 +570,25 @@ export default function DataPPKSPage() {
       )}
 
       {/* Wide Data Table */}
-      <div className="w-full overflow-x-auto bg-white rounded-xl shadow-sm border border-slate-200">
+      <div className="w-full overflow-auto max-h-[70vh] bg-white rounded-xl shadow-sm border border-slate-200">
         <table className="w-full min-w-max text-sm text-left text-slate-600">
             <thead className="bg-slate-50 text-slate-700 text-xs uppercase font-semibold border-b border-slate-200">
               <tr>
                 {/* Sticky Columns Header */}
                 <th 
-                  className="sticky left-0 bg-white z-20 px-4 py-3 border-b text-center"
+                  className="md:sticky md:left-0 sticky top-0 bg-slate-50 z-30 px-4 py-3 border-b shadow-[0_1px_0_0_#e2e8f0] text-center"
                   style={{ minWidth: '80px' }}
                 >
                   Tahun
                 </th>
                 <th 
-                  className="sticky left-[70px] md:left-[80px] bg-white z-20 px-4 py-3 border-b"
+                  className="md:sticky md:left-[80px] sticky top-0 bg-slate-50 z-30 px-4 py-3 border-b shadow-[0_1px_0_0_#e2e8f0]"
                   style={{ minWidth: '140px' }}
                 >
                   Kapanewon
                 </th>
                 <th 
-                  className="sticky left-[170px] md:left-[200px] bg-white z-20 px-4 py-3 border-b"
+                  className="md:sticky md:left-[220px] sticky top-0 bg-slate-50 z-30 px-4 py-3 border-b shadow-[0_1px_0_0_#e2e8f0]"
                   style={{ minWidth: '140px' }}
                 >
                   Kalurahan
@@ -599,20 +599,20 @@ export default function DataPPKSPage() {
                   categories.map(cat => (
                     <th 
                       key={cat}
-                      className="px-4 py-4 text-right hover:bg-slate-100 transition-colors cursor-help"
+                      className="px-4 py-4 text-right hover:bg-slate-100 transition-colors cursor-help min-w-[80px] sticky top-0 bg-slate-50 z-20 shadow-[0_1px_0_0_#e2e8f0]"
                       title={CATEGORY_MAP[cat]}
                     >
                       {cat.toUpperCase()}
                     </th>
                   ))
                 ) : (
-                  <th className="px-4 py-4 text-right text-blue-800 bg-blue-50/50">
+                  <th className="px-4 py-4 text-right text-blue-800 bg-blue-50 min-w-[80px] sticky top-0 z-20 shadow-[0_1px_0_0_#e2e8f0]">
                     {PPKS_CATEGORIES.find(c => c.id === selectedKategori)?.label}
                   </th>
                 )}
                 
                 {/* Aksi Header Sticky Right */}
-                <th className="px-4 py-4 text-center sticky right-0 z-20 bg-white border-l border-b border-slate-200 min-w-[100px]">
+                <th className="px-4 py-4 text-center sticky right-0 top-0 z-30 bg-slate-50 border-l border-b border-slate-200 min-w-[100px] shadow-[0_1px_0_0_#e2e8f0]">
                   Aksi
                 </th>
               </tr>
@@ -622,19 +622,19 @@ export default function DataPPKSPage() {
                 <tr key={row.id} className="hover:bg-blue-50/50 transition-colors even:bg-slate-50/50 group">
                   {/* Sticky Columns Body */}
                   <td 
-                    className="sticky left-0 bg-white z-10 px-4 py-3 border-b text-center tabular-nums font-medium text-slate-900"
+                    className="md:sticky md:left-0 bg-white md:z-10 px-4 py-3 border-b text-center tabular-nums font-medium text-slate-900 group-even:bg-slate-50 group-hover:bg-blue-50/50"
                     style={{ minWidth: '80px' }}
                   >
                     {row.tahun}
                   </td>
                   <td 
-                    className="sticky left-[70px] md:left-[80px] bg-white z-10 px-4 py-3 border-b font-medium text-slate-900"
+                    className="md:sticky md:left-[80px] bg-white md:z-10 px-4 py-3 border-b font-medium text-slate-900 group-even:bg-slate-50 group-hover:bg-blue-50/50"
                     style={{ minWidth: '140px' }}
                   >
                     {row.kapanewon}
                   </td>
                   <td 
-                    className="sticky left-[170px] md:left-[200px] bg-white z-10 px-4 py-3 border-b text-slate-700"
+                    className="md:sticky md:left-[220px] bg-white md:z-10 px-4 py-3 border-b text-slate-700 group-even:bg-slate-50 group-hover:bg-blue-50/50"
                     style={{ minWidth: '140px' }}
                   >
                     {row.kalurahan}
@@ -643,7 +643,7 @@ export default function DataPPKSPage() {
                   {/* Category Cells */}
                   {selectedKategori === 'semua' ? (
                     categories.map(cat => (
-                      <td key={cat} className="px-4 py-3 text-right tabular-nums">
+                      <td key={cat} className="px-4 py-3 text-right tabular-nums min-w-[80px]">
                         {row[cat] > 0 ? (
                           <span className="font-medium text-slate-700">{row[cat].toLocaleString('id-ID')}</span>
                         ) : (
@@ -652,7 +652,7 @@ export default function DataPPKSPage() {
                       </td>
                     ))
                   ) : (
-                    <td className="px-4 py-3 text-right tabular-nums font-semibold text-blue-700 bg-blue-50/30">
+                    <td className="px-4 py-3 text-right tabular-nums font-semibold text-blue-700 bg-blue-50/30 min-w-[80px]">
                       {row[selectedKategori as keyof typeof CATEGORY_MAP] > 0 ? (
                         row[selectedKategori as keyof typeof CATEGORY_MAP].toLocaleString('id-ID')
                       ) : (
@@ -686,21 +686,21 @@ export default function DataPPKSPage() {
             {filteredData.length > 0 && (
               <tfoot className="bg-slate-50 font-bold border-t-2 border-slate-300">
                 <tr>
-                  <td className="sticky left-0 bg-slate-50 z-10 px-4 py-3 border-r border-slate-200" colSpan={3}>
+                  <td className="md:sticky md:left-0 bg-slate-50 md:z-10 px-4 py-3 border-r border-slate-200" colSpan={3}>
                     TOTAL KESELURUHAN
                   </td>
                   {selectedKategori === 'semua' ? (
                     PPKS_CATEGORIES.map(cat => (
-                      <td key={cat.id} className="px-4 py-3 text-right text-slate-800 tabular-nums">
+                      <td key={cat.id} className="px-4 py-3 text-right text-slate-800 tabular-nums min-w-[80px]">
                         {(Number(summaryStats.categoryTotals[cat.id]) || 0).toLocaleString('id-ID')}
                       </td>
                     ))
                   ) : (
-                    <td className="px-4 py-3 text-right text-slate-800 bg-blue-100/50 tabular-nums">
+                    <td className="px-4 py-3 text-right text-slate-800 bg-blue-100/50 tabular-nums min-w-[80px]">
                       {(Number(summaryStats.categoryTotals[selectedKategori]) || 0).toLocaleString('id-ID')}
                     </td>
                   )}
-                  <td className="sticky right-0 bg-slate-50 z-10 px-4 py-3 border-l border-slate-200"></td>
+                  <td className="sticky right-0 bg-slate-50 z-10 px-4 py-3 border-l border-slate-200 min-w-[100px]"></td>
                 </tr>
               </tfoot>
             )}
