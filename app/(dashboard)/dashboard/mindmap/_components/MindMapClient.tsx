@@ -31,24 +31,24 @@ import {
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
 /** Count nodes at specific levels in the tree */
-function countByLevel(node: TreeNode): { bidang: number; rincian: number; totalPagu: number } {
+function countNodes(node: TreeNode): { bidang: number; rincian: number } {
   let bidang = 0;
   let rincian = 0;
-  let totalPagu = 0;
 
   function walk(n: TreeNode) {
     if (n.level === 1) bidang++;
-    if (n.level === 5) {
-      rincian++;
-      if (n.data?.paguAnggaran) {
-        const num = parseInt(n.data.paguAnggaran.replace(/\D/g, ''), 10);
-        if (!isNaN(num)) totalPagu += num;
-      }
-    }
+    if (n.level === 5) rincian++;
     n.children.forEach(walk);
   }
   walk(node);
-  return { bidang, rincian, totalPagu };
+  
+  return { bidang, rincian };
+}
+
+function parseRp(val: string | undefined | null): number {
+  if (!val || val.trim() === '' || val.trim() === '-') return 0;
+  const cleaned = val.replace(/Rp\s?/gi, '').replace(/\./g, '').replace(/,/g, '.').trim();
+  return Number(cleaned) || 0;
 }
 
 /** Search for nodes whose name contains the query */
@@ -74,6 +74,7 @@ import { YearSelector } from '@/components/YearSelector';
 export default function MindMapClient() {
   const { activeSource, isLoading: isContextLoading } = useDataSourceContext();
   const [tree, setTree] = useState<TreeNode | null>(null);
+  const [rawData, setRawData] = useState<any[]>([]);
   const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set());
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [selectedNode, setSelectedNode] = useState<TreeNode | null>(null);
@@ -103,6 +104,7 @@ export default function MindMapClient() {
         data = SAMPLE_CSV_DATA;
       }
 
+      setRawData(data);
       const treeData = buildTree(data);
       setTree(treeData);
 
@@ -135,8 +137,21 @@ export default function MindMapClient() {
   // ── Statistics ──
   const stats = useMemo(() => {
     if (!tree) return null;
-    return countByLevel(tree);
-  }, [tree]);
+    
+    const { bidang, rincian } = countNodes(tree);
+    
+    let totalPagu = 0;
+    let totalRealisasi = 0;
+
+    rawData.forEach(row => {
+      totalPagu += parseRp(row['Pagu Anggaran']);
+      totalRealisasi += parseRp(row['Capaian Realisasi Nominal']);
+    });
+
+    const persentase = totalPagu > 0 ? ((totalRealisasi / totalPagu) * 100).toFixed(1) : '0';
+    
+    return { bidang, rincian, totalPagu, totalRealisasi, persentase };
+  }, [tree, rawData]);
 
   // ── Search results ──
   const searchResults = useMemo(() => {
@@ -294,7 +309,19 @@ export default function MindMapClient() {
             <StatBadge
               icon={<span className="text-[10px] font-bold">Rp</span>}
               label="Total Pagu"
-              value={`${(stats.totalPagu / 1_000_000).toFixed(0)} Jt`}
+              value={`Rp ${stats.totalPagu.toLocaleString('id-ID')}`}
+            />
+            <StatBadge
+              icon={<span className="text-[10px] font-bold text-emerald-600">Rp</span>}
+              label="Total Realisasi"
+              value={
+                <div className="flex items-center gap-1.5">
+                  <span className="text-emerald-600">{`Rp ${stats.totalRealisasi.toLocaleString('id-ID')}`}</span>
+                  <span className="text-[9px] px-1.5 py-0.5 bg-emerald-100 text-emerald-700 rounded font-bold">
+                    {stats.persentase}%
+                  </span>
+                </div>
+              }
             />
           </div>
         )}
@@ -433,7 +460,7 @@ function StatBadge({
 }: {
   icon: React.ReactNode;
   label: string;
-  value: string | number;
+  value: React.ReactNode;
 }) {
   return (
     <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 rounded-lg border border-gray-100">
