@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
 import type { TreeNode, LeafDetail } from '@/lib/mindmap/csv-to-tree';
 import { LEVEL_NAMES } from '@/lib/mindmap/csv-to-tree';
 import {
@@ -48,6 +48,8 @@ function hasValue(value: string): boolean {
   return value !== '-' && value.trim().length > 0;
 }
 
+
+
 // ─── Detail Content (Leaf Node) ──────────────────────────────────────────────
 
 function LeafDetailContent({ detail, nodeName }: { detail: LeafDetail, nodeName: string }) {
@@ -90,27 +92,24 @@ function LeafDetailContent({ detail, nodeName }: { detail: LeafDetail, nodeName:
       <div className="px-6 py-5 space-y-6">
 
         {/* ═══ CAPAIAN (Progress) ═══ */}
-        <div className={`rounded-2xl p-5 border ${
-          isLow ? 'bg-red-50/70 border-red-100/50' :
-          isMedium ? 'bg-amber-50/70 border-amber-100/50' :
-          'bg-emerald-50/70 border-emerald-100/50'
-        }`}>
+        <div className={`rounded-2xl p-5 border ${isLow ? 'bg-red-50/70 border-red-100/50' :
+            isMedium ? 'bg-amber-50/70 border-amber-100/50' :
+              'bg-emerald-50/70 border-emerald-100/50'
+          }`}>
           <p className="text-[10px] font-bold text-slate-400 tracking-widest uppercase mb-3">
             Capaian Realisasi
           </p>
 
           {/* Percentage + Badge */}
           <div className="flex items-end justify-between mb-3">
-            <span className={`text-3xl font-extrabold tabular-nums ${
-              isLow ? 'text-red-600' : isMedium ? 'text-amber-600' : 'text-emerald-600'
-            }`}>
+            <span className={`text-3xl font-extrabold tabular-nums ${isLow ? 'text-red-600' : isMedium ? 'text-amber-600' : 'text-emerald-600'
+              }`}>
               {percentage}%
             </span>
-            <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${
-              isLow ? 'bg-red-100 text-red-700' :
-              isMedium ? 'bg-amber-100 text-amber-700' :
-              'bg-emerald-100 text-emerald-700'
-            }`}>
+            <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${isLow ? 'bg-red-100 text-red-700' :
+                isMedium ? 'bg-amber-100 text-amber-700' :
+                  'bg-emerald-100 text-emerald-700'
+              }`}>
               {isLow ? 'Perlu Perhatian' : isMedium ? 'Progres' : 'Baik'}
             </span>
           </div>
@@ -118,9 +117,8 @@ function LeafDetailContent({ detail, nodeName }: { detail: LeafDetail, nodeName:
           {/* Progress bar */}
           <div className="w-full bg-white/70 rounded-full h-2.5 overflow-hidden mb-4">
             <div
-              className={`h-full rounded-full transition-all duration-700 ease-out ${
-                isLow ? 'bg-red-500' : isMedium ? 'bg-amber-500' : 'bg-emerald-500'
-              }`}
+              className={`h-full rounded-full transition-all duration-700 ease-out ${isLow ? 'bg-red-500' : isMedium ? 'bg-amber-500' : 'bg-emerald-500'
+                }`}
               style={{ width: `${percentage}%` }}
             />
           </div>
@@ -219,6 +217,46 @@ function LeafDetailContent({ detail, nodeName }: { detail: LeafDetail, nodeName:
 // ─── Detail Content (Intermediate Node) ──────────────────────────────────────
 
 function IntermediateNodeContent({ node }: { node: TreeNode }) {
+  const selectedNodeFinancials = useMemo(() => {
+    // 1. Handle data nesting
+    const nodeData = node.data || node;
+
+    let pagu = 0;
+    let realisasi = 0;
+
+    // Helper parser
+    const safeNumber = (val: any) => {
+      if (!val) return 0;
+      if (typeof val === 'number') return val;
+      const cleanStr = String(val).replace(/\./g, '').replace(/[^0-9-]/g, '');
+      return Number(cleanStr) || 0;
+    };
+
+    // Identify if the clicked node is the lowest level
+    const isLeafNode = !!node.data || node.children.length === 0;
+
+    if (isLeafNode && node.data) {
+      pagu = safeNumber(node.data.paguAnggaran);
+      realisasi = safeNumber(node.data.capaianRealisasiNominal);
+    } else {
+      // Aggregate all its leaf node descendants.
+      function walk(n: TreeNode) {
+        if (n.data) {
+          pagu += safeNumber(n.data.paguAnggaran);
+          realisasi += safeNumber(n.data.capaianRealisasiNominal);
+        }
+        n.children.forEach(walk);
+      }
+
+      // Start aggregating from all direct children
+      node.children.forEach(walk);
+    }
+
+    const persentase = pagu > 0 ? ((realisasi / pagu) * 100).toFixed(1) : '0';
+
+    return { pagu, realisasi, persentase };
+  }, [node]);
+
   return (
     <>
       {/* Header */}
@@ -231,24 +269,45 @@ function IntermediateNodeContent({ node }: { node: TreeNode }) {
           {node.name}
         </h2>
       </div>
-      
+
       <div className="px-6 py-5 space-y-6">
-         <SectionCard title="Informasi" icon={<Network className="w-4 h-4 text-slate-400" />}>
-           <div className="space-y-3">
+        <SectionCard title="Informasi" icon={<Network className="w-4 h-4 text-slate-400" />}>
+          <div className="space-y-3">
+            <div>
+              <span className="text-[11px] text-slate-400 mb-1 block">Level Hierarki</span>
+              <p className="text-sm text-slate-700 font-medium">{LEVEL_NAMES[node.level] || 'Root'}</p>
+            </div>
+            <div className="pt-3 border-t border-slate-100/80">
+              <span className="text-[11px] text-slate-400 mb-1 block">Program</span>
+              <p className="text-sm text-slate-700 font-medium">{node.children.length} item</p>
+            </div>
+            <div className="pt-3 border-t border-slate-100/80">
+              <span className="text-[11px] text-slate-400 mb-1 block">Kegiatan</span>
+              <p className="text-sm text-slate-700 font-medium">{node.childCount} item</p>
+            </div>
+
+            <div className="pt-4 mt-4 border-t border-slate-100/80">
+              <div className="mb-4">
+                <p className="text-[11px] text-slate-400 mb-1 block">Total Pagu Anggaran</p>
+                <p className="text-lg font-bold text-slate-800">
+                  Rp {selectedNodeFinancials.pagu.toLocaleString('id-ID')}
+                </p>
+              </div>
+
               <div>
-                <span className="text-[11px] text-slate-400 mb-1 block">Level Hierarki</span>
-                <p className="text-sm text-slate-700 font-medium">{LEVEL_NAMES[node.level] || 'Root'}</p>
+                <p className="text-[11px] text-slate-400 mb-1 block">Total Realisasi Keuangan</p>
+                <div className="flex items-center gap-2 mt-0.5">
+                  <p className="text-lg font-bold text-emerald-600">
+                    Rp {selectedNodeFinancials.realisasi.toLocaleString('id-ID')}
+                  </p>
+                  <span className="text-[10px] font-bold px-2 py-0.5 bg-emerald-100 text-emerald-700 rounded-md">
+                    {selectedNodeFinancials.persentase}%
+                  </span>
+                </div>
               </div>
-              <div className="pt-3 border-t border-slate-100/80">
-                <span className="text-[11px] text-slate-400 mb-1 block">Jumlah Turunan Langsung</span>
-                <p className="text-sm text-slate-700 font-medium">{node.children.length} item</p>
-              </div>
-              <div className="pt-3 border-t border-slate-100/80">
-                <span className="text-[11px] text-slate-400 mb-1 block">Total Item Tersarang</span>
-                <p className="text-sm text-slate-700 font-medium">{node.childCount} item</p>
-              </div>
-           </div>
-         </SectionCard>
+            </div>
+          </div>
+        </SectionCard>
       </div>
     </>
   );
@@ -320,18 +379,16 @@ function MobileSheet({ node, onClose }: { node: TreeNode | null; onClose?: () =>
     <div className="fixed inset-0 z-50 lg:hidden">
       {/* Backdrop */}
       <div
-        className={`absolute inset-0 bg-black/40 transition-opacity duration-200 ${
-          isVisible ? 'opacity-100' : 'opacity-0'
-        }`}
+        className={`absolute inset-0 bg-black/40 transition-opacity duration-200 ${isVisible ? 'opacity-100' : 'opacity-0'
+          }`}
         onClick={handleClose}
       />
 
       {/* Sheet */}
       <div
         className={`absolute bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-2xl max-h-[75vh] overflow-y-auto
-          transition-transform duration-300 ease-out ${
-          isVisible ? 'translate-y-0' : 'translate-y-full'
-        }`}
+          transition-transform duration-300 ease-out ${isVisible ? 'translate-y-0' : 'translate-y-full'
+          }`}
       >
         {/* Drag handle + close */}
         <div className="sticky top-0 z-20 bg-white rounded-t-2xl pt-3 pb-1 px-5 flex items-center justify-between">

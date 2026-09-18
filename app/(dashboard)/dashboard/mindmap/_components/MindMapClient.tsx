@@ -45,10 +45,11 @@ function countNodes(node: TreeNode): { bidang: number; rincian: number } {
   return { bidang, rincian };
 }
 
-function parseRp(val: string | undefined | null): number {
-  if (!val || val.trim() === '' || val.trim() === '-') return 0;
-  const cleaned = val.replace(/Rp\s?/gi, '').replace(/\./g, '').replace(/,/g, '.').trim();
-  return Number(cleaned) || 0;
+function safeNumber(val: any): number {
+  if (!val) return 0;
+  if (typeof val === 'number') return val;
+  const cleanStr = String(val).replace(/\./g, '').replace(/[^0-9-]/g, '');
+  return Number(cleanStr) || 0;
 }
 
 /** Search for nodes whose name contains the query */
@@ -144,8 +145,8 @@ export default function MindMapClient() {
     let totalRealisasi = 0;
 
     rawData.forEach(row => {
-      totalPagu += parseRp(row['Pagu Anggaran']);
-      totalRealisasi += parseRp(row['Capaian Realisasi Nominal']);
+      totalPagu += safeNumber(row['Pagu Anggaran']);
+      totalRealisasi += safeNumber(row['Capaian Realisasi Nominal']);
     });
 
     const persentase = totalPagu > 0 ? ((totalRealisasi / totalPagu) * 100).toFixed(1) : '0';
