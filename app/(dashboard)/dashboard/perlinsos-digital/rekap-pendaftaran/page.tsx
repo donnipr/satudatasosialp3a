@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Loader2, Plus, Upload, Edit, Trash2, X, Download } from 'lucide-react';
+import { Loader2, Plus, Upload, Edit, Trash2, X, Download, TrendingDown, ChevronDown } from 'lucide-react';
 import Papa from 'papaparse';
 
 interface RekapPendaftaran {
@@ -22,6 +22,8 @@ export default function RekapPendaftaranPage() {
   const [data, setData] = useState<RekapPendaftaran[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  const [filterMode, setFilterMode] = useState<'all' | 'lowest-populasi' | 'lowest-rentan' | 'lowest-pkh' | 'lowest-bpnt'>('all');
   
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -214,6 +216,36 @@ export default function RekapPendaftaranPage() {
     }
   );
 
+  const filteredAndSortedData = useMemo(() => {
+    const processedData = data.map((row) => {
+      const totalPendaftar = Number(row.total_pendaftar || 0);
+      const jumlahKeluarga = Number(row.jumlah_keluarga || 0);
+      const desil15 = Number(row.desil_1_5 || 0);
+      const penerimaPkh = Number(row.penerima_pkh || 0);
+      const penerimaBpnt = Number(row.penerima_bpnt || 0);
+      
+      const populasiRate = jumlahKeluarga > 0 ? (totalPendaftar / jumlahKeluarga) * 100 : 0;
+      const rentanRate = desil15 > 0 ? (totalPendaftar / desil15) * 100 : 0;
+      const pkhRate = totalPendaftar > 0 ? (penerimaPkh / totalPendaftar) * 100 : 0;
+      const bpntRate = totalPendaftar > 0 ? (penerimaBpnt / totalPendaftar) * 100 : 0;
+      
+      return { ...row, populasiRate, rentanRate, pkhRate, bpntRate };
+    });
+
+    switch (filterMode) {
+      case 'lowest-populasi':
+        return processedData.sort((a, b) => a.populasiRate - b.populasiRate);
+      case 'lowest-rentan':
+        return processedData.sort((a, b) => a.rentanRate - b.rentanRate);
+      case 'lowest-pkh':
+        return processedData.sort((a, b) => a.pkhRate - b.pkhRate);
+      case 'lowest-bpnt':
+        return processedData.sort((a, b) => a.bpntRate - b.bpntRate);
+      default:
+        return processedData;
+    }
+  }, [data, filterMode]);
+
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -225,6 +257,22 @@ export default function RekapPendaftaranPage() {
         </div>
         
         <div className="flex items-center gap-2">
+          <div className="relative">
+            <select
+              value={filterMode}
+              onChange={(e) => setFilterMode(e.target.value as any)}
+              className={`appearance-none pl-9 pr-8 py-2 text-sm font-medium rounded-lg transition-colors shadow-sm outline-none cursor-pointer ${filterMode !== 'all' ? 'bg-orange-50 text-orange-700 border border-orange-200' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'}`}
+            >
+              <option value="all">Semua Data</option>
+              <option value="lowest-populasi">Sorot Pendaftar vs Jumlah Keluarga Terendah</option>
+              <option value="lowest-rentan">Sorot Pendaftar vs Desil 1-5 Terendah</option>
+              <option value="lowest-pkh">Sorot Realisasi PKH Terendah</option>
+              <option value="lowest-bpnt">Sorot Realisasi BPNT Terendah</option>
+            </select>
+            <TrendingDown className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${filterMode !== 'all' ? 'text-orange-600' : 'text-slate-500'}`}/>
+            <ChevronDown className={`w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none ${filterMode !== 'all' ? 'text-orange-600' : 'text-slate-500'}`}/>
+          </div>
+
           <button 
             onClick={downloadTemplate}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
@@ -286,22 +334,67 @@ export default function RekapPendaftaranPage() {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
-                  {data.length === 0 ? (
+                  {filteredAndSortedData.length === 0 ? (
                     <tr>
                       <td colSpan={10} className="px-6 py-8 text-center text-gray-500">
                         Tidak ada data ditemukan
                       </td>
                     </tr>
                   ) : (
-                    data.map((row) => (
-                      <tr key={row.id} className="hover:bg-gray-50/50 transition-colors">
+                    filteredAndSortedData.map((row) => {
+                      let activeRate = 0;
+                      let isLowCoverage = false;
+
+                      if (filterMode === 'lowest-populasi') {
+                        activeRate = row.populasiRate;
+                        isLowCoverage = activeRate < 30;
+                      } else if (filterMode === 'lowest-rentan') {
+                        activeRate = row.rentanRate;
+                        isLowCoverage = activeRate < 30;
+                      } else if (filterMode === 'lowest-pkh') {
+                        activeRate = row.pkhRate;
+                        isLowCoverage = activeRate < 30;
+                      } else if (filterMode === 'lowest-bpnt') {
+                        activeRate = row.bpntRate;
+                        isLowCoverage = activeRate < 30;
+                      }
+
+                      return (
+                      <tr key={row.id} className={`transition-colors ${isLowCoverage ? 'bg-red-50/80 hover:bg-red-100/80' : 'hover:bg-gray-50/50'}`}>
                         <td className="px-6 py-4 font-medium text-gray-900">{row.kapanewon}</td>
                         <td className="px-6 py-4">{row.kalurahan}</td>
                         <td className="px-6 py-4 text-right tabular-nums">{Number(row.jumlah_keluarga || 0).toLocaleString('id-ID')}</td>
                         <td className="px-6 py-4 text-right tabular-nums">{Number(row.desil_1_5 || 0).toLocaleString('id-ID')}</td>
-                        <td className="px-6 py-4 text-right tabular-nums">{Number(row.penerima_pkh || 0).toLocaleString('id-ID')}</td>
-                        <td className="px-6 py-4 text-right tabular-nums">{Number(row.penerima_bpnt || 0).toLocaleString('id-ID')}</td>
-                        <td className="px-6 py-4 text-right tabular-nums">{Number(row.total_pendaftar || 0).toLocaleString('id-ID')}</td>
+                        <td className="px-6 py-4 text-right tabular-nums">
+                          <div className="flex flex-col items-end gap-1">
+                            <span>{Number(row.penerima_pkh || 0).toLocaleString('id-ID')}</span>
+                            {filterMode === 'lowest-pkh' && (
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isLowCoverage ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                                {row.pkhRate.toFixed(1)}%
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-right tabular-nums">
+                          <div className="flex flex-col items-end gap-1">
+                            <span>{Number(row.penerima_bpnt || 0).toLocaleString('id-ID')}</span>
+                            {filterMode === 'lowest-bpnt' && (
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isLowCoverage ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                                {row.bpntRate.toFixed(1)}%
+                              </span>
+                            )}
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 text-right tabular-nums">
+                          <div className="flex flex-col items-end gap-1">
+                            <span>{Number(row.total_pendaftar || 0).toLocaleString('id-ID')}</span>
+                            {(filterMode === 'lowest-rentan' || filterMode === 'lowest-populasi') && (
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isLowCoverage ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                                {activeRate.toFixed(1)}%
+                              </span>
+                            )}
+                          </div>
+                        </td>
                         <td className="px-6 py-4">{row.periode_dtsen}</td>
                         <td className="px-6 py-4">{row.tahun}</td>
                         <td className="px-6 py-4 text-center">
@@ -323,7 +416,7 @@ export default function RekapPendaftaranPage() {
                           </div>
                         </td>
                       </tr>
-                    ))
+                    )})
                   )}
                 </tbody>
                 {data.length > 0 && (
