@@ -19,19 +19,19 @@ export function DtsenTable({ data, role }: { data: any[], role: string }) {
   const kapanewonList = useMemo(() => Array.from(new Set(data.map(d => d.kecamatan).filter(Boolean))).sort(), [data])
   const kalurahanList = useMemo(() => Array.from(new Set(
     data.filter(d => !selectedKapanewon || d.kecamatan === selectedKapanewon)
-        .map(d => d.kelurahan).filter(Boolean)
+      .map(d => d.kelurahan).filter(Boolean)
   )).sort(), [data, selectedKapanewon])
 
   // Filter Data
   const filteredData = useMemo(() => {
     return data.filter(row => {
-      const matchSearch = !searchQuery || 
-        (row.kecamatan?.toLowerCase() || '').includes(searchQuery.toLowerCase()) || 
+      const matchSearch = !searchQuery ||
+        (row.kecamatan?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
         (row.kelurahan?.toLowerCase() || '').includes(searchQuery.toLowerCase());
-      
+
       const matchKapanewon = !selectedKapanewon || row.kecamatan === selectedKapanewon;
       const matchKalurahan = !selectedKalurahan || row.kelurahan === selectedKalurahan;
-      
+
       return matchSearch && matchKapanewon && matchKalurahan;
     });
   }, [data, searchQuery, selectedKapanewon, selectedKalurahan]);
@@ -41,34 +41,34 @@ export function DtsenTable({ data, role }: { data: any[], role: string }) {
     return filteredData.reduce((acc, row) => {
       acc.d1.keluarga += (row.d1_keluarga || 0)
       acc.d1.individu += (row.d1_individu || 0)
-      
+
       acc.d2.keluarga += (row.d2_keluarga || 0)
       acc.d2.individu += (row.d2_individu || 0)
-      
+
       acc.d3.keluarga += (row.d3_keluarga || 0)
       acc.d3.individu += (row.d3_individu || 0)
-      
+
       acc.d4.keluarga += (row.d4_keluarga || 0)
       acc.d4.individu += (row.d4_individu || 0)
-      
+
       acc.d5.keluarga += (row.d5_keluarga || 0)
       acc.d5.individu += (row.d5_individu || 0)
-      
+
       acc.d6_10.keluarga += (row.d6_10_keluarga || 0)
       acc.d6_10.individu += (row.d6_10_individu || 0)
 
       acc.belum_peringkat.keluarga += (row.belum_peringkat_keluarga || 0)
       acc.belum_peringkat.individu += (row.belum_peringkat_individu || 0)
-      
+
       return acc
-    }, { 
-      d1: { keluarga: 0, individu: 0 }, 
-      d2: { keluarga: 0, individu: 0 }, 
-      d3: { keluarga: 0, individu: 0 }, 
-      d4: { keluarga: 0, individu: 0 }, 
-      d5: { keluarga: 0, individu: 0 }, 
-      d6_10: { keluarga: 0, individu: 0 }, 
-      belum_peringkat: { keluarga: 0, individu: 0 } 
+    }, {
+      d1: { keluarga: 0, individu: 0 },
+      d2: { keluarga: 0, individu: 0 },
+      d3: { keluarga: 0, individu: 0 },
+      d4: { keluarga: 0, individu: 0 },
+      d5: { keluarga: 0, individu: 0 },
+      d6_10: { keluarga: 0, individu: 0 },
+      belum_peringkat: { keluarga: 0, individu: 0 }
     })
   }, [filteredData]);
 
@@ -115,16 +115,16 @@ export function DtsenTable({ data, role }: { data: any[], role: string }) {
       <div className="flex flex-col md:flex-row gap-4 mb-6 bg-white p-4 rounded-xl border border-slate-200 shadow-sm">
         <div className="flex-1 relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={18} />
-          <input 
-            type="text" 
-            placeholder="Cari Kapanewon atau Kalurahan..." 
+          <input
+            type="text"
+            placeholder="Cari Kapanewon atau Kalurahan..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500"
           />
         </div>
-        <select 
-          value={selectedKapanewon} 
+        <select
+          value={selectedKapanewon}
           onChange={(e) => {
             setSelectedKapanewon(e.target.value);
             setSelectedKalurahan(''); // reset kalurahan when kapanewon changes
@@ -134,8 +134,8 @@ export function DtsenTable({ data, role }: { data: any[], role: string }) {
           <option value="">Semua Kapanewon</option>
           {kapanewonList.map(k => <option key={k as string} value={k as string}>{k as string}</option>)}
         </select>
-        <select 
-          value={selectedKalurahan} 
+        <select
+          value={selectedKalurahan}
           onChange={(e) => setSelectedKalurahan(e.target.value)}
           disabled={!selectedKapanewon}
           className="border border-slate-200 rounded-lg px-4 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-red-500/20 focus:border-red-500 disabled:bg-slate-50 disabled:text-slate-400"
@@ -143,7 +143,7 @@ export function DtsenTable({ data, role }: { data: any[], role: string }) {
           <option value="">Semua Kalurahan</option>
           {kalurahanList.map(k => <option key={k as string} value={k as string}>{k as string}</option>)}
         </select>
-        <button 
+        <button
           onClick={() => {
             setSearchQuery('');
             setSelectedKapanewon('');
@@ -168,14 +168,13 @@ export function DtsenTable({ data, role }: { data: any[], role: string }) {
         ].map(item => {
           const isSelected = selectedRibbonDeciles.includes(item.key);
           return (
-            <button 
-              key={item.label} 
+            <button
+              key={item.label}
               onClick={() => setSelectedRibbonDeciles(prev => prev.includes(item.key) ? prev.filter(k => k !== item.key) : [...prev, item.key])}
-              className={`p-3 border rounded-xl flex flex-col gap-2 relative transition-all text-left ${
-                isSelected 
+              className={`p-3 border rounded-xl flex flex-col gap-2 relative transition-all text-left ${isSelected
                   ? 'ring-2 ring-red-600 bg-red-50/50 shadow-md border-transparent'
                   : 'bg-white border-slate-200 hover:border-red-300 shadow-sm hover:shadow-md'
-              }`}
+                }`}
             >
               {isSelected && <CheckCircle size={16} className="text-red-600 absolute top-3 right-3" />}
               <h4 className="text-xs font-extrabold text-slate-700 uppercase tracking-wider border-b border-slate-100 pb-1.5 text-center w-full">
@@ -200,7 +199,7 @@ export function DtsenTable({ data, role }: { data: any[], role: string }) {
       {selectedRibbonDeciles.length > 0 && (() => {
         const totalSelectedKeluarga = selectedRibbonDeciles.reduce((sum, key) => sum + ((decileSummary as any)[key]?.keluarga || 0), 0);
         const totalSelectedIndividu = selectedRibbonDeciles.reduce((sum, key) => sum + ((decileSummary as any)[key]?.individu || 0), 0);
-        
+
         return (
           <div className="mb-6 p-4 bg-slate-800 text-white rounded-xl shadow-lg flex flex-col md:flex-row items-start md:items-center justify-between border-l-4 border-red-500 animate-in slide-in-from-top-4 gap-4">
             <div>
@@ -216,7 +215,7 @@ export function DtsenTable({ data, role }: { data: any[], role: string }) {
                 <span className="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Individu</span>
                 <span className="text-xl font-bold">{totalSelectedIndividu.toLocaleString('id-ID')}</span>
               </div>
-              <button 
+              <button
                 onClick={() => setSelectedRibbonDeciles([])}
                 className="ml-2 flex items-center gap-1.5 px-3 py-1.5 bg-slate-700 hover:bg-slate-600 text-slate-200 text-xs font-semibold rounded-lg transition-colors"
               >
@@ -283,34 +282,34 @@ export function DtsenTable({ data, role }: { data: any[], role: string }) {
                     <td className="px-4 py-3 border-r border-gray-100 text-gray-600 whitespace-nowrap text-center">{row.tahun}</td>
                     <td className="px-4 py-3 border-r border-gray-100 font-medium text-gray-900 whitespace-nowrap">{row.kecamatan}</td>
                     <td className="px-4 py-3 border-r border-gray-200 whitespace-nowrap">{row.kelurahan}</td>
-                    
+
                     <td className="px-3 py-3 border-r border-gray-100 text-center font-semibold bg-gray-50/50">{row.total_keluarga?.toLocaleString('id-ID')}</td>
                     <td className="px-3 py-3 border-r border-gray-200 text-center font-semibold bg-gray-50/50">{row.total_individu?.toLocaleString('id-ID')}</td>
-                    
+
                     <td className="px-3 py-3 border-r border-gray-100 text-center text-gray-600">{row.d1_keluarga?.toLocaleString('id-ID')}</td>
                     <td className="px-3 py-3 border-r border-gray-200 text-center text-gray-600">{row.d1_individu?.toLocaleString('id-ID')}</td>
-                    
+
                     <td className="px-3 py-3 border-r border-gray-100 text-center text-gray-600">{row.d2_keluarga?.toLocaleString('id-ID')}</td>
                     <td className="px-3 py-3 border-r border-gray-200 text-center text-gray-600">{row.d2_individu?.toLocaleString('id-ID')}</td>
-                    
+
                     <td className="px-3 py-3 border-r border-gray-100 text-center text-gray-600">{row.d3_keluarga?.toLocaleString('id-ID')}</td>
                     <td className="px-3 py-3 border-r border-gray-200 text-center text-gray-600">{row.d3_individu?.toLocaleString('id-ID')}</td>
-                    
+
                     <td className="px-3 py-3 border-r border-gray-100 text-center text-gray-600">{row.d4_keluarga?.toLocaleString('id-ID')}</td>
                     <td className="px-3 py-3 border-r border-gray-200 text-center text-gray-600">{row.d4_individu?.toLocaleString('id-ID')}</td>
-                    
+
                     <td className="px-3 py-3 border-r border-gray-100 text-center text-gray-600">{row.d5_keluarga?.toLocaleString('id-ID')}</td>
                     <td className="px-3 py-3 border-r border-gray-200 text-center text-gray-600">{row.d5_individu?.toLocaleString('id-ID')}</td>
-                    
+
                     <td className="px-3 py-3 border-r border-gray-100 text-center text-gray-600">{row.d6_10_keluarga?.toLocaleString('id-ID')}</td>
                     <td className="px-3 py-3 border-r border-gray-200 text-center text-gray-600">{row.d6_10_individu?.toLocaleString('id-ID')}</td>
-                    
+
                     <td className="px-3 py-3 border-r border-gray-100 text-center text-gray-600">{row.belum_peringkat_keluarga?.toLocaleString('id-ID')}</td>
                     <td className="px-3 py-3 border-r border-gray-200 text-center text-gray-600">{row.belum_peringkat_individu?.toLocaleString('id-ID')}</td>
-                    
+
                     <td className="px-3 py-3 border-r border-red-50 text-center text-red-600 font-medium bg-red-50/30">{row.nonaktif_keluarga?.toLocaleString('id-ID')}</td>
                     <td className="px-3 py-3 border-r border-gray-200 text-center text-red-600 font-medium bg-red-50/30">{row.nonaktif_individu?.toLocaleString('id-ID')}</td>
-                    
+
                     {isSuperuser && (
                       <td className="px-4 py-3 text-center bg-gray-50/30">
                         <div className="flex items-center justify-center space-x-2">
@@ -341,21 +340,22 @@ export function DtsenTable({ data, role }: { data: any[], role: string }) {
                 <X size={20} />
               </button>
             </div>
-            
+
             <form onSubmit={handleUpdate} className="flex flex-col flex-1 overflow-hidden">
               <div className="p-6 overflow-y-auto space-y-8 flex-1">
-                
+
                 {/* Informasi Dasar */}
                 <section>
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100">Informasi Dasar</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Periode</label>
-                      <select required value={editForm.periode} onChange={e => setEditForm({...editForm, periode: e.target.value})} className="w-full border-gray-200 rounded-lg p-2 border bg-white">
+                      <select required value={editForm.periode} onChange={e => setEditForm({ ...editForm, periode: e.target.value })} className="w-full border-gray-200 rounded-lg p-2 border bg-white">
                         <option value="Triwulan 1">Triwulan 1</option>
                         <option value="Triwulan 2">Triwulan 2</option>
                         <option value="Triwulan 3">Triwulan 3</option>
                         <option value="Periode 3.1">Periode 3.1</option>
+                        <option value="Periode 3.2">Periode 3.2</option>
                         <option value="Triwulan 4">Triwulan 4</option>
                       </select>
                     </div>
@@ -365,11 +365,11 @@ export function DtsenTable({ data, role }: { data: any[], role: string }) {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Kapanewon</label>
-                      <input type="text" required value={editForm.kecamatan} onChange={e => setEditForm({...editForm, kecamatan: e.target.value})} className="w-full border-gray-200 rounded-lg p-2 border" />
+                      <input type="text" required value={editForm.kecamatan} onChange={e => setEditForm({ ...editForm, kecamatan: e.target.value })} className="w-full border-gray-200 rounded-lg p-2 border" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Kalurahan</label>
-                      <input type="text" required value={editForm.kelurahan} onChange={e => setEditForm({...editForm, kelurahan: e.target.value})} className="w-full border-gray-200 rounded-lg p-2 border" />
+                      <input type="text" required value={editForm.kelurahan} onChange={e => setEditForm({ ...editForm, kelurahan: e.target.value })} className="w-full border-gray-200 rounded-lg p-2 border" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Total Keluarga</label>
@@ -386,7 +386,7 @@ export function DtsenTable({ data, role }: { data: any[], role: string }) {
                 <section>
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100">Rincian Desil & Peringkat</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    
+
                     {/* Keluarga Column */}
                     <div className="space-y-4">
                       <h4 className="font-medium text-gray-700 bg-gray-50 p-2 rounded-md text-center">Data Keluarga</h4>
@@ -431,7 +431,7 @@ export function DtsenTable({ data, role }: { data: any[], role: string }) {
                 </section>
 
               </div>
-              
+
               <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-2 flex-shrink-0 rounded-b-xl">
                 <button type="button" onClick={() => setEditingId(null)} className="px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-white bg-transparent transition-colors">Batal</button>
                 <button type="submit" disabled={isLoading} className="flex items-center space-x-2 bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors shadow-sm">

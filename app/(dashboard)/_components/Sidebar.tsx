@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Users, Settings, HeartHandshake, ChevronsLeft, Menu, Network, Layers, ChevronDown, Database, FolderHeart } from 'lucide-react'
+import { LayoutDashboard, Users, Settings, HeartHandshake, ChevronsLeft, Menu, Network, Layers, ChevronDown, Database, FolderHeart, MonitorSmartphone, PieChart } from 'lucide-react'
 
 export function Sidebar({ role, isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen }: { role: string; isCollapsed: boolean; setIsCollapsed: (val: boolean) => void; isMobileOpen: boolean; setIsMobileOpen: (val: boolean) => void }) {
   const pathname = usePathname()
@@ -70,6 +70,27 @@ export function Sidebar({ role, isCollapsed, setIsCollapsed, isMobileOpen, setIs
         {
           title: 'Data PSKS',
           href: '/dashboard/ppks-psks/psks',
+          icon: Database
+        }
+      ]
+    },
+    {
+      title: 'Perlinsos Digital',
+      icon: MonitorSmartphone,
+      subItems: [
+        {
+          title: 'Analisis KPI',
+          href: '/dashboard/perlinsos-digital/kpi',
+          icon: PieChart
+        },
+        {
+          title: 'Rekap Pendaftaran',
+          href: '/dashboard/perlinsos-digital/rekap-pendaftaran',
+          icon: Database
+        },
+        {
+          title: 'Rekap Agen',
+          href: '/dashboard/perlinsos-digital/rekap-agen',
           icon: Database
         }
       ]

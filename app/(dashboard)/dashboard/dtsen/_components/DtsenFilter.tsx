@@ -16,7 +16,7 @@ export function DtsenFilter({ currentTahun, currentPeriode }: { currentTahun: st
     <div className="flex gap-4 items-center bg-white p-3 rounded-lg border border-gray-200 shadow-sm">
       <div className="flex items-center gap-2">
         <label className="text-sm font-medium text-gray-700">Tahun:</label>
-        <select 
+        <select
           value={currentTahun}
           onChange={(e) => handleFilterChange('tahun', e.target.value)}
           className="border border-gray-200 rounded-md text-sm p-1.5 focus:outline-none focus:ring-2 focus:ring-red-500"
@@ -31,7 +31,7 @@ export function DtsenFilter({ currentTahun, currentPeriode }: { currentTahun: st
 
       <div className="flex items-center gap-2">
         <label className="text-sm font-medium text-gray-700">Periode:</label>
-        <select 
+        <select
           value={currentPeriode}
           onChange={(e) => handleFilterChange('periode', e.target.value)}
           className="border border-gray-200 rounded-md text-sm p-1.5 focus:outline-none focus:ring-2 focus:ring-red-500"
@@ -40,6 +40,7 @@ export function DtsenFilter({ currentTahun, currentPeriode }: { currentTahun: st
           <option value="Triwulan 2">Triwulan 2</option>
           <option value="Triwulan 3">Triwulan 3</option>
           <option value="Periode 3.1">Periode 3.1</option>
+          <option value="Periode 3.2">Periode 3.2</option>
           <option value="Triwulan 4">Triwulan 4</option>
         </select>
       </div>

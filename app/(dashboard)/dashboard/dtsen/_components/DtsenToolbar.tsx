@@ -8,7 +8,7 @@ export function DtsenToolbar({ role, data }: { role: string, data: any[] }) {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false)
   const [isImportModalOpen, setIsImportModalOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
-  
+
   const initialFormState = {
     periode: 'Triwulan 1',
     tahun: new Date().getFullYear(),
@@ -37,11 +37,11 @@ export function DtsenToolbar({ role, data }: { role: string, data: any[] }) {
 
   const handleExport = () => {
     if (!data || data.length === 0) return alert('Tidak ada data untuk diekspor')
-    
+
     const headers = Object.keys(data[0]).filter(k => k !== 'id' && k !== 'created_at')
     const rows = data.map(row => headers.map(h => `"${row[h] || ''}"`).join(','))
     const csvContent = [headers.join(','), ...rows].join('\n')
-    
+
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
@@ -63,7 +63,7 @@ export function DtsenToolbar({ role, data }: { role: string, data: any[] }) {
         const text = event.target?.result as string
         const lines = text.split('\n').filter(line => line.trim())
         if (lines.length < 2) return alert('File CSV kosong atau tidak valid')
-        
+
         const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''))
         const parsedData = lines.slice(1).map(line => {
           const values = line.split(',').map(v => v.trim().replace(/^"|"$/g, ''))
@@ -71,14 +71,14 @@ export function DtsenToolbar({ role, data }: { role: string, data: any[] }) {
           headers.forEach((h, i) => {
             const val = values[i]
             if (h === 'tahun' || h === 'periode') return
-            
+
             if (['total_keluarga', 'total_individu'].includes(h) || h.includes('_keluarga') || h.includes('_individu')) {
               rowData[h] = parseInt(val) || 0
             } else {
               rowData[h] = val
             }
           })
-          
+
           rowData.tahun = importParams.tahun
           rowData.periode = importParams.periode
           return rowData
@@ -124,7 +124,7 @@ export function DtsenToolbar({ role, data }: { role: string, data: any[] }) {
     <div className="flex gap-2">
       {role === 'IAM & ADMIN' && (
         <>
-          <button 
+          <button
             onClick={() => setIsAddModalOpen(true)}
             className="flex items-center space-x-2 bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg font-medium transition-colors shadow-sm"
           >
@@ -132,7 +132,7 @@ export function DtsenToolbar({ role, data }: { role: string, data: any[] }) {
             <span>Tambah Data</span>
           </button>
 
-          <button 
+          <button
             onClick={() => setIsImportModalOpen(true)}
             disabled={isLoading}
             className="flex items-center space-x-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium transition-colors shadow-sm"
@@ -143,7 +143,7 @@ export function DtsenToolbar({ role, data }: { role: string, data: any[] }) {
         </>
       )}
 
-      <button 
+      <button
         onClick={handleExport}
         className="flex items-center space-x-2 bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 px-4 py-2 rounded-lg font-medium transition-colors shadow-sm"
       >
@@ -161,21 +161,22 @@ export function DtsenToolbar({ role, data }: { role: string, data: any[] }) {
                 <X size={20} />
               </button>
             </div>
-            
+
             <form onSubmit={handleAddSubmit} className="flex flex-col flex-1 overflow-hidden">
               <div className="p-6 overflow-y-auto space-y-8 flex-1">
-                
+
                 {/* Informasi Dasar */}
                 <section>
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100">Informasi Dasar</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Periode</label>
-                      <select required value={formData.periode} onChange={e => setFormData({...formData, periode: e.target.value})} className="w-full border-gray-200 rounded-lg p-2 border bg-white">
+                      <select required value={formData.periode} onChange={e => setFormData({ ...formData, periode: e.target.value })} className="w-full border-gray-200 rounded-lg p-2 border bg-white">
                         <option value="Triwulan 1">Triwulan 1</option>
                         <option value="Triwulan 2">Triwulan 2</option>
                         <option value="Triwulan 3">Triwulan 3</option>
                         <option value="Periode 3.1">Periode 3.1</option>
+                        <option value="Periode 3.2">Periode 3.2</option>
                         <option value="Triwulan 4">Triwulan 4</option>
                       </select>
                     </div>
@@ -185,11 +186,11 @@ export function DtsenToolbar({ role, data }: { role: string, data: any[] }) {
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Kapanewon</label>
-                      <input type="text" required value={formData.kecamatan} onChange={e => setFormData({...formData, kecamatan: e.target.value})} className="w-full border-gray-200 rounded-lg p-2 border" />
+                      <input type="text" required value={formData.kecamatan} onChange={e => setFormData({ ...formData, kecamatan: e.target.value })} className="w-full border-gray-200 rounded-lg p-2 border" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Kalurahan</label>
-                      <input type="text" required value={formData.kelurahan} onChange={e => setFormData({...formData, kelurahan: e.target.value})} className="w-full border-gray-200 rounded-lg p-2 border" />
+                      <input type="text" required value={formData.kelurahan} onChange={e => setFormData({ ...formData, kelurahan: e.target.value })} className="w-full border-gray-200 rounded-lg p-2 border" />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-1">Total Keluarga</label>
@@ -206,7 +207,7 @@ export function DtsenToolbar({ role, data }: { role: string, data: any[] }) {
                 <section>
                   <h3 className="text-lg font-semibold text-gray-800 mb-4 pb-2 border-b border-gray-100">Rincian Desil & Peringkat</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    
+
                     {/* Keluarga Column */}
                     <div className="space-y-4">
                       <h4 className="font-medium text-gray-700 bg-gray-50 p-2 rounded-md text-center">Data Keluarga</h4>
@@ -251,7 +252,7 @@ export function DtsenToolbar({ role, data }: { role: string, data: any[] }) {
                 </section>
 
               </div>
-              
+
               <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end gap-2 flex-shrink-0 rounded-b-xl">
                 <button type="button" onClick={() => setIsAddModalOpen(false)} className="px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-white bg-transparent transition-colors">Batal</button>
                 <button type="submit" disabled={isLoading} className="flex items-center space-x-2 bg-red-600 text-white px-6 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 transition-colors shadow-sm">
@@ -274,7 +275,7 @@ export function DtsenToolbar({ role, data }: { role: string, data: any[] }) {
                 <X size={20} />
               </button>
             </div>
-            
+
             <form onSubmit={handleImportSubmit} className="p-6 space-y-6">
               <div className="bg-blue-50 text-blue-800 p-4 rounded-lg text-sm mb-4 border border-blue-100">
                 <p>Parameter Tahun dan Periode di bawah ini akan disuntikkan secara otomatis ke setiap baris data CSV Anda.</p>
@@ -283,26 +284,27 @@ export function DtsenToolbar({ role, data }: { role: string, data: any[] }) {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Tahun Target</label>
-                  <input 
-                    type="number" 
-                    required 
-                    value={importParams.tahun} 
-                    onChange={e => setImportParams({...importParams, tahun: parseInt(e.target.value)})} 
-                    className="w-full border-gray-200 rounded-lg p-2 border" 
+                  <input
+                    type="number"
+                    required
+                    value={importParams.tahun}
+                    onChange={e => setImportParams({ ...importParams, tahun: parseInt(e.target.value) })}
+                    className="w-full border-gray-200 rounded-lg p-2 border"
                   />
                 </div>
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Periode Target</label>
-                  <select 
-                    required 
-                    value={importParams.periode} 
-                    onChange={e => setImportParams({...importParams, periode: e.target.value})} 
+                  <select
+                    required
+                    value={importParams.periode}
+                    onChange={e => setImportParams({ ...importParams, periode: e.target.value })}
                     className="w-full border-gray-200 rounded-lg p-2 border bg-white"
                   >
                     <option value="Triwulan 1">Triwulan 1</option>
                     <option value="Triwulan 2">Triwulan 2</option>
                     <option value="Triwulan 3">Triwulan 3</option>
                     <option value="Periode 3.1">Periode 3.1</option>
+                    <option value="Periode 3.2">Periode 3.2</option>
                     <option value="Triwulan 4">Triwulan 4</option>
                   </select>
                 </div>
@@ -310,15 +312,15 @@ export function DtsenToolbar({ role, data }: { role: string, data: any[] }) {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Pilih File CSV</label>
-                <input 
-                  type="file" 
-                  accept=".csv" 
+                <input
+                  type="file"
+                  accept=".csv"
                   required
                   ref={fileInputRef}
                   className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-red-50 file:text-red-700 hover:file:bg-red-100 cursor-pointer border border-gray-200 rounded-lg p-1"
                 />
               </div>
-              
+
               <div className="pt-2 flex justify-end gap-2 border-t border-gray-100 mt-6 pt-4">
                 <button type="button" onClick={() => setIsImportModalOpen(false)} className="px-4 py-2 border border-gray-200 rounded-lg text-gray-600 hover:bg-gray-50">Batal</button>
                 <button type="submit" disabled={isLoading} className="flex items-center space-x-2 bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700 disabled:opacity-50">
