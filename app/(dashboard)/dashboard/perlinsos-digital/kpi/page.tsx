@@ -203,7 +203,7 @@ export default function AnalisisKPIPage() {
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                     <XAxis dataKey="kapanewon" angle={-45} textAnchor="end" height={80} tick={{ fontSize: 11, fill: '#6b7280' }} />
                     <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} />
-                    <Tooltip cursor={{ fill: '#f3f4f6' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} formatter={(value: number) => value.toLocaleString('id-ID')} />
+                    <Tooltip cursor={{ fill: '#f3f4f6' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} formatter={(value: any) => value ? Number(value).toLocaleString('id-ID') : '0'} />
                     <Legend wrapperStyle={{ paddingTop: '10px' }} />
                     <Bar dataKey="targetRentan" name="Target Rentan" fill="#fb923c" radius={[4, 4, 0, 0]} maxBarSize={40} />
                     <Bar dataKey="pendaftar" name="Pendaftar" fill="#10b981" radius={[4, 4, 0, 0]} maxBarSize={40} />
@@ -223,7 +223,7 @@ export default function AnalisisKPIPage() {
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e5e7eb" />
                     <XAxis dataKey="kapanewon" angle={-45} textAnchor="end" height={80} tick={{ fontSize: 11, fill: '#6b7280' }} />
                     <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} />
-                    <Tooltip cursor={{ fill: '#f3f4f6' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} formatter={(value: number) => value.toLocaleString('id-ID')} />
+                    <Tooltip cursor={{ fill: '#f3f4f6' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} formatter={(value: any) => value ? Number(value).toLocaleString('id-ID') : '0'} />
                     <Legend wrapperStyle={{ paddingTop: '10px' }} />
                     <Bar dataKey="agen" name="Total Agen" fill="#3b82f6" radius={[4, 4, 0, 0]} maxBarSize={40} />
                     <Bar dataKey="agenAktif" name="Agen Aktif" fill="#14b8a6" radius={[4, 4, 0, 0]} maxBarSize={40} />
