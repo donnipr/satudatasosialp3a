@@ -1,7 +1,12 @@
-import { type NextRequest } from 'next/server'
+import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/lib/supabase/middleware'
 
 export default async function proxy(request: NextRequest) {
+  // Allow public portal routes to bypass authentication
+  if (request.nextUrl.pathname.startsWith('/public-portal')) {
+    return NextResponse.next()
+  }
+
   return await updateSession(request)
 }
 
@@ -12,8 +17,10 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
+     * - public-portal (public pages)
      * Feel free to modify this pattern to include more paths.
      */
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    '/((?!_next/static|_next/image|favicon.ico|public-portal|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],
 }
+

@@ -2,6 +2,13 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 export async function updateSession(request: NextRequest) {
+  // Allow public portal routes to bypass authentication
+  if (request.nextUrl.pathname.startsWith('/public-portal')) {
+    return NextResponse.next({
+      request,
+    })
+  }
+
   let supabaseResponse = NextResponse.next({
     request,
   })
@@ -38,7 +45,7 @@ export async function updateSession(request: NextRequest) {
   // The system context requested ZERO PUBLIC ACCESS for /app/(dashboard)
   // However, `request.nextUrl.pathname` doesn't include route groups like `(dashboard)`
   // Since the whole app is protected except login, we can just check if user is not logged in and not on login page
-  if (!user && !request.nextUrl.pathname.startsWith('/login') && !request.nextUrl.pathname.startsWith('/auth')) {
+  if (!user && !request.nextUrl.pathname.startsWith('/login') && !request.nextUrl.pathname.startsWith('/auth') && !request.nextUrl.pathname.startsWith('/public-portal')) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
     return NextResponse.redirect(url)
