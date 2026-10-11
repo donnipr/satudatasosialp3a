@@ -1,39 +1,85 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { Loader2, Plus, Upload, Edit, Trash2, X, Download, TrendingDown, ChevronDown } from 'lucide-react';
+import { Loader2, Plus, Upload, Edit, Trash2, X, Download, TrendingDown, ChevronDown, Search } from 'lucide-react';
 import Papa from 'papaparse';
 
 interface RekapPendaftaran {
-  id: number;
+  id?: number | string;
   kapanewon: string;
   kalurahan: string;
   jumlah_keluarga: number;
   desil_1_5: number;
-  penerima_pkh: number;
+  kk_daftar: number;
   penerima_bpnt: number;
-  total_pendaftar: number;
-  periode_dtsen: string;
-  tahun: string | number;
+  bpnt_daftar: number;
+  penerima_pkh: number;
+  pkh_daftar: number;
+  agen: number;
+  agen_aktif: number;
+  kk_via_agen: number;
+  total_pendaftar?: number;
+  periode_dtsen?: string;
+  tahun?: string | number;
 }
 
-export default function RekapPendaftaranPage() {
-  const [data, setData] = useState<RekapPendaftaran[]>([]);
-  const [loading, setLoading] = useState(true);
+interface RekapPendaftaranPageProps {
+  initialData?: RekapPendaftaran[];
+  tableData?: RekapPendaftaran[];
+}
+
+type FilterMode = 
+  | 'all' 
+  | 'sort_capaian_desil_tertinggi'
+  | 'sort_capaian_desil_terendah'
+  | 'sort_realisasi_bpnt_tertinggi'
+  | 'sort_realisasi_bpnt_terendah'
+  | 'sort_realisasi_pkh_tertinggi'
+  | 'sort_realisasi_pkh_terendah'
+  | 'lowest-kk-populasi' 
+  | 'lowest-kk-rentan' 
+  | 'lowest-pkh' 
+  | 'lowest-bpnt' 
+  | 'lowest-agen';
+
+export default function RekapPendaftaranPage({ initialData, tableData }: RekapPendaftaranPageProps = {}) {
+  const router = useRouter();
+  const effectiveInitial = initialData || tableData;
+  const [rawData, setRawData] = useState<RekapPendaftaran[]>(effectiveInitial || []);
+  const [loading, setLoading] = useState(!effectiveInitial || effectiveInitial.length === 0);
   const [error, setError] = useState<string | null>(null);
+
+  // Sync Props to State (if passed from server component or parent)
+  useEffect(() => {
+    if (initialData) {
+      setRawData(initialData);
+      setLoading(false);
+    } else if (tableData) {
+      setRawData(tableData);
+      setLoading(false);
+    }
+  }, [initialData, tableData]);
   
-  const [filterMode, setFilterMode] = useState<'all' | 'lowest-populasi' | 'lowest-rentan' | 'lowest-pkh' | 'lowest-bpnt'>('all');
+  const [filterMode, setFilterMode] = useState<FilterMode>('all');
+  const [searchKapanewon, setSearchKapanewon] = useState('');
+  const [searchKalurahan, setSearchKalurahan] = useState('');
   
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [editId, setEditId] = useState<number | null>(null);
+  const [editId, setEditId] = useState<number | string | null>(null);
   const [formData, setFormData] = useState({
     kapanewon: '',
     kalurahan: '',
-    penerima_pkh: 0,
+    kk_daftar: 0,
+    bpnt_daftar: 0,
     penerima_bpnt: 0,
-    total_pendaftar: 0,
+    pkh_daftar: 0,
+    penerima_pkh: 0,
+    agen: 0,
+    agen_aktif: 0,
+    kk_via_agen: 0,
   });
   
   const [isImporting, setIsImporting] = useState(false);
@@ -54,7 +100,7 @@ export default function RekapPendaftaranPage() {
         throw error;
       }
 
-      setData(data || []);
+      setRawData(data || []);
     } catch (err: any) {
       setError(err.message || 'Terjadi kesalahan saat mengambil data');
     } finally {
@@ -63,8 +109,10 @@ export default function RekapPendaftaranPage() {
   };
 
   useEffect(() => {
-    fetchData();
-  }, []);
+    if (!effectiveInitial || effectiveInitial.length === 0) {
+      fetchData();
+    }
+  }, [effectiveInitial]);
 
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -73,9 +121,15 @@ export default function RekapPendaftaranPage() {
     const payload = {
       kapanewon: formData.kapanewon,
       kalurahan: formData.kalurahan,
-      penerima_pkh: Number(formData.penerima_pkh),
-      penerima_bpnt: Number(formData.penerima_bpnt),
-      total_pendaftar: Number(formData.total_pendaftar),
+      kk_daftar: Number(formData.kk_daftar || 0),
+      bpnt_daftar: Number(formData.bpnt_daftar || 0),
+      penerima_bpnt: Number(formData.penerima_bpnt || 0),
+      pkh_daftar: Number(formData.pkh_daftar || 0),
+      penerima_pkh: Number(formData.penerima_pkh || 0),
+      agen: Number(formData.agen || 0),
+      agen_aktif: Number(formData.agen_aktif || 0),
+      kk_via_agen: Number(formData.kk_via_agen || 0),
+      total_pendaftar: Number(formData.kk_daftar || 0),
     };
 
     try {
@@ -92,14 +146,16 @@ export default function RekapPendaftaranPage() {
         if (error) throw error;
       }
       setIsModalOpen(false);
-      fetchData();
+      await fetchData();
+      router.refresh();
     } catch (err: any) {
       alert(err.message || 'Gagal menyimpan data');
       setLoading(false);
     }
   };
 
-  const handleDelete = async (id: number) => {
+  const handleDelete = async (id?: number | string) => {
+    if (!id) return;
     if (!window.confirm('Apakah Anda yakin ingin menghapus data ini?')) return;
     
     setLoading(true);
@@ -110,7 +166,8 @@ export default function RekapPendaftaranPage() {
         .eq('id', id);
         
       if (error) throw error;
-      fetchData();
+      await fetchData();
+      router.refresh();
     } catch (err: any) {
       alert(err.message || 'Gagal menghapus data');
       setLoading(false);
@@ -122,28 +179,54 @@ export default function RekapPendaftaranPage() {
     setFormData({
       kapanewon: '',
       kalurahan: '',
-      penerima_pkh: 0,
+      kk_daftar: 0,
+      bpnt_daftar: 0,
       penerima_bpnt: 0,
-      total_pendaftar: 0,
+      pkh_daftar: 0,
+      penerima_pkh: 0,
+      agen: 0,
+      agen_aktif: 0,
+      kk_via_agen: 0,
     });
     setIsModalOpen(true);
   };
 
   const openEditModal = (row: RekapPendaftaran) => {
-    setEditId(row.id);
+    setEditId(row.id ?? null);
     setFormData({
       kapanewon: row.kapanewon,
       kalurahan: row.kalurahan,
-      penerima_pkh: row.penerima_pkh,
-      penerima_bpnt: row.penerima_bpnt,
-      total_pendaftar: row.total_pendaftar,
+      kk_daftar: Number(row.kk_daftar ?? row.total_pendaftar ?? 0),
+      bpnt_daftar: Number(row.bpnt_daftar || 0),
+      penerima_bpnt: Number(row.penerima_bpnt || 0),
+      pkh_daftar: Number(row.pkh_daftar || 0),
+      penerima_pkh: Number(row.penerima_pkh || 0),
+      agen: Number(row.agen || 0),
+      agen_aktif: Number(row.agen_aktif || 0),
+      kk_via_agen: Number(row.kk_via_agen || 0),
     });
     setIsModalOpen(true);
   };
 
   const downloadTemplate = () => {
-    const headers = "kapanewon,kalurahan,penerima_pkh,penerima_bpnt,total_pendaftar\n";
-    const blob = new Blob([headers], { type: 'text/csv;charset=utf-8;' });
+    const headers = [
+      "kapanewon", "kalurahan", 
+      "kk_daftar", "bpnt_daftar", "penerima_bpnt", 
+      "pkh_daftar", "penerima_pkh", 
+      "agen", "agen_aktif", "kk_via_agen", 
+      "periode_dtsen", "tahun"
+    ];
+
+    const exampleRow = [
+      "Wonosari", "Wunung",
+      "320", "280", "275",
+      "150", "148",
+      "8", "6", "110",
+      "Periode 3.2", "2024"
+    ];
+
+    const csvContent = `${headers.join(',')}\n${exampleRow.join(',')}\n`;
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
     link.setAttribute('href', url);
@@ -164,13 +247,31 @@ export default function RekapPendaftaranPage() {
       skipEmptyLines: true,
       complete: async (results) => {
         try {
-          const formattedData = results.data.map((row: any) => ({
-            kapanewon: row.kapanewon,
-            kalurahan: row.kalurahan,
-            penerima_pkh: Number(row.penerima_pkh || 0),
-            penerima_bpnt: Number(row.penerima_bpnt || 0),
-            total_pendaftar: Number(row.total_pendaftar || 0),
-          }));
+          const formattedData = results.data
+            .filter((row: any) => row.kapanewon && row.kalurahan)
+            .map((row: any) => {
+              const kkDaftar = parseInt(row.kk_daftar, 10) || parseInt(row.total_pendaftar, 10) || 0;
+              return {
+                kapanewon: String(row.kapanewon).trim(),
+                kalurahan: String(row.kalurahan).trim(),
+                kk_daftar: kkDaftar,
+                bpnt_daftar: parseInt(row.bpnt_daftar, 10) || 0,
+                penerima_bpnt: parseInt(row.penerima_bpnt, 10) || 0,
+                pkh_daftar: parseInt(row.pkh_daftar, 10) || 0,
+                penerima_pkh: parseInt(row.penerima_pkh, 10) || 0,
+                agen: parseInt(row.agen, 10) || 0,
+                agen_aktif: parseInt(row.agen_aktif, 10) || 0,
+                kk_via_agen: parseInt(row.kk_via_agen, 10) || 0,
+                periode_dtsen: row.periode_dtsen || 'Periode 3.2',
+                tahun: parseInt(row.tahun, 10) || new Date().getFullYear(),
+                total_pendaftar: kkDaftar,
+              };
+            });
+
+          if (formattedData.length === 0) {
+            alert('Tidak ada baris data valid yang ditemukan dalam file CSV.');
+            return;
+          }
 
           const { error } = await supabase
             .from('rekap_pendaftaran_perlinsos')
@@ -181,8 +282,9 @@ export default function RekapPendaftaranPage() {
             
           if (error) throw error;
           
-          alert('Data berhasil diimport');
-          fetchData();
+          alert(`Berhasil mengimpor ${formattedData.length} baris data CSV!`);
+          await fetchData();
+          router.refresh();
         } catch (error: any) {
           alert(error.message || 'Gagal import data CSV');
         } finally {
@@ -198,53 +300,152 @@ export default function RekapPendaftaranPage() {
     });
   };
 
-  const totalSum = data.reduce(
-    (acc, curr) => {
-      acc.jumlah_keluarga += Number(curr.jumlah_keluarga || 0);
-      acc.desil_1_5 += Number(curr.desil_1_5 || 0);
-      acc.penerima_pkh += Number(curr.penerima_pkh || 0);
-      acc.penerima_bpnt += Number(curr.penerima_bpnt || 0);
-      acc.total_pendaftar += Number(curr.total_pendaftar || 0);
-      return acc;
-    },
-    {
-      jumlah_keluarga: 0,
-      desil_1_5: 0,
-      penerima_pkh: 0,
-      penerima_bpnt: 0,
-      total_pendaftar: 0,
-    }
-  );
+  const totalSum = useMemo(() => {
+    return rawData.reduce(
+      (acc, curr) => {
+        acc.jumlah_keluarga += Number(curr.jumlah_keluarga || 0);
+        acc.desil_1_5 += Number(curr.desil_1_5 || 0);
+        acc.kk_daftar += Number(curr.kk_daftar ?? curr.total_pendaftar ?? 0);
+        acc.bpnt_daftar += Number(curr.bpnt_daftar || 0);
+        acc.penerima_bpnt += Number(curr.penerima_bpnt || 0);
+        acc.pkh_daftar += Number(curr.pkh_daftar || 0);
+        acc.penerima_pkh += Number(curr.penerima_pkh || 0);
+        acc.agen += Number(curr.agen || 0);
+        acc.agen_aktif += Number(curr.agen_aktif || 0);
+        acc.kk_via_agen += Number(curr.kk_via_agen || 0);
+        return acc;
+      },
+      {
+        jumlah_keluarga: 0,
+        desil_1_5: 0,
+        kk_daftar: 0,
+        bpnt_daftar: 0,
+        penerima_bpnt: 0,
+        pkh_daftar: 0,
+        penerima_pkh: 0,
+        agen: 0,
+        agen_aktif: 0,
+        kk_via_agen: 0,
+      }
+    );
+  }, [rawData]);
 
   const filteredAndSortedData = useMemo(() => {
-    const processedData = data.map((row) => {
-      const totalPendaftar = Number(row.total_pendaftar || 0);
+    if (!rawData) return [];
+
+    // Step 1: Text search filter (case-insensitive)
+    const filtered = rawData.filter((item) => {
+      const matchKapanewon = item.kapanewon?.toLowerCase().includes(searchKapanewon.toLowerCase()) ?? true;
+      const matchKalurahan = item.kalurahan?.toLowerCase().includes(searchKalurahan.toLowerCase()) ?? true;
+      return matchKapanewon && matchKalurahan;
+    });
+
+    const processedData = filtered.map((row) => {
       const jumlahKeluarga = Number(row.jumlah_keluarga || 0);
       const desil15 = Number(row.desil_1_5 || 0);
-      const penerimaPkh = Number(row.penerima_pkh || 0);
+      const kkDaftar = Number(row.kk_daftar ?? row.total_pendaftar ?? 0);
+      const bpntDaftar = Number(row.bpnt_daftar || 0);
       const penerimaBpnt = Number(row.penerima_bpnt || 0);
-      
-      const populasiRate = jumlahKeluarga > 0 ? (totalPendaftar / jumlahKeluarga) * 100 : 0;
-      const rentanRate = desil15 > 0 ? (totalPendaftar / desil15) * 100 : 0;
-      const pkhRate = totalPendaftar > 0 ? (penerimaPkh / totalPendaftar) * 100 : 0;
-      const bpntRate = totalPendaftar > 0 ? (penerimaBpnt / totalPendaftar) * 100 : 0;
-      
-      return { ...row, populasiRate, rentanRate, pkhRate, bpntRate };
+      const pkhDaftar = Number(row.pkh_daftar || 0);
+      const penerimaPkh = Number(row.penerima_pkh || 0);
+      const agen = Number(row.agen || 0);
+      const agenAktif = Number(row.agen_aktif || 0);
+      const kkViaAgen = Number(row.kk_via_agen || 0);
+
+      // Calculations per analytical angles
+      const kkPopulasiRate = jumlahKeluarga > 0 ? (kkDaftar / jumlahKeluarga) * 100 : 0;
+      const kkRentanRate = desil15 > 0 ? (kkDaftar / desil15) * 100 : 0;
+      const pkhRealisasiRate = penerimaPkh > 0 ? (pkhDaftar / penerimaPkh) * 100 : 0;
+      const bpntRealisasiRate = penerimaBpnt > 0 ? (bpntDaftar / penerimaBpnt) * 100 : 0;
+      const agenKinerjaRate = kkDaftar > 0 ? (kkViaAgen / kkDaftar) * 100 : 0;
+
+      return { 
+        ...row, 
+        jumlah_keluarga: jumlahKeluarga,
+        desil_1_5: desil15,
+        kk_daftar: kkDaftar,
+        bpnt_daftar: bpntDaftar,
+        penerima_bpnt: penerimaBpnt,
+        pkh_daftar: pkhDaftar,
+        penerima_pkh: penerimaPkh,
+        agen: agen,
+        agen_aktif: agenAktif,
+        kk_via_agen: kkViaAgen,
+        kkPopulasiRate, 
+        kkRentanRate, 
+        pkhRealisasiRate, 
+        bpntRealisasiRate, 
+        agenKinerjaRate 
+      };
     });
 
     switch (filterMode) {
-      case 'lowest-populasi':
-        return processedData.sort((a, b) => a.populasiRate - b.populasiRate);
-      case 'lowest-rentan':
-        return processedData.sort((a, b) => a.rentanRate - b.rentanRate);
+      case 'sort_capaian_desil_tertinggi':
+        // Sort descending (highest coverage at the top)
+        processedData.sort((a, b) => {
+          const rateA = a.desil_1_5 > 0 ? (a.kk_daftar / a.desil_1_5) : 0;
+          const rateB = b.desil_1_5 > 0 ? (b.kk_daftar / b.desil_1_5) : 0;
+          return rateB - rateA; 
+        });
+        break;
+
+      case 'sort_capaian_desil_terendah':
+        // Sort ascending (lowest coverage at the top for intervention)
+        processedData.sort((a, b) => {
+          const rateA = a.desil_1_5 > 0 ? (a.kk_daftar / a.desil_1_5) : 0;
+          const rateB = b.desil_1_5 > 0 ? (b.kk_daftar / b.desil_1_5) : 0;
+          return rateA - rateB; 
+        });
+        break;
+
+      case 'sort_realisasi_bpnt_tertinggi':
+        processedData.sort((a, b) => {
+          const rateA = a.penerima_bpnt > 0 ? (a.bpnt_daftar / a.penerima_bpnt) : 0;
+          const rateB = b.penerima_bpnt > 0 ? (b.bpnt_daftar / b.penerima_bpnt) : 0;
+          return rateB - rateA;
+        });
+        break;
+
+      case 'sort_realisasi_bpnt_terendah':
+        processedData.sort((a, b) => {
+          const rateA = a.penerima_bpnt > 0 ? (a.bpnt_daftar / a.penerima_bpnt) : 0;
+          const rateB = b.penerima_bpnt > 0 ? (b.bpnt_daftar / b.penerima_bpnt) : 0;
+          return rateA - rateB;
+        });
+        break;
+
+      case 'sort_realisasi_pkh_tertinggi':
+        processedData.sort((a, b) => {
+          const rateA = a.penerima_pkh > 0 ? (a.pkh_daftar / a.penerima_pkh) : 0;
+          const rateB = b.penerima_pkh > 0 ? (b.pkh_daftar / b.penerima_pkh) : 0;
+          return rateB - rateA;
+        });
+        break;
+
+      case 'sort_realisasi_pkh_terendah':
+        processedData.sort((a, b) => {
+          const rateA = a.penerima_pkh > 0 ? (a.pkh_daftar / a.penerima_pkh) : 0;
+          const rateB = b.penerima_pkh > 0 ? (b.pkh_daftar / b.penerima_pkh) : 0;
+          return rateA - rateB;
+        });
+        break;
+
+      case 'lowest-kk-populasi':
+        return [...processedData].sort((a, b) => a.kkPopulasiRate - b.kkPopulasiRate);
+      case 'lowest-kk-rentan':
+        return [...processedData].sort((a, b) => a.kkRentanRate - b.kkRentanRate);
       case 'lowest-pkh':
-        return processedData.sort((a, b) => a.pkhRate - b.pkhRate);
+        return [...processedData].sort((a, b) => a.pkhRealisasiRate - b.pkhRealisasiRate);
       case 'lowest-bpnt':
-        return processedData.sort((a, b) => a.bpntRate - b.bpntRate);
+        return [...processedData].sort((a, b) => a.bpntRealisasiRate - b.bpntRealisasiRate);
+      case 'lowest-agen':
+        return [...processedData].sort((a, b) => a.agenKinerjaRate - b.agenKinerjaRate);
       default:
         return processedData;
     }
-  }, [data, filterMode]);
+
+    return processedData;
+  }, [rawData, filterMode, searchKapanewon, searchKalurahan]);
 
   return (
     <div className="p-6 space-y-6">
@@ -252,27 +453,11 @@ export default function RekapPendaftaranPage() {
         <div className="flex flex-col space-y-2">
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">Rekap Pendaftaran Perlinsos Digital</h1>
           <p className="text-sm text-gray-500">
-            Data rekapitulasi pendaftaran perlindungan sosial berdasarkan kapanewon dan kalurahan.
+            Data rekapitulasi komprehensif pendaftaran perlindungan sosial, verifikasi program (PKH & BPNT), dan kinerja agen per kalurahan.
           </p>
         </div>
         
-        <div className="flex items-center gap-2">
-          <div className="relative">
-            <select
-              value={filterMode}
-              onChange={(e) => setFilterMode(e.target.value as any)}
-              className={`appearance-none pl-9 pr-8 py-2 text-sm font-medium rounded-lg transition-colors shadow-sm outline-none cursor-pointer ${filterMode !== 'all' ? 'bg-orange-50 text-orange-700 border border-orange-200' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'}`}
-            >
-              <option value="all">Semua Data</option>
-              <option value="lowest-populasi">Sorot Pendaftar vs Jumlah Keluarga Terendah</option>
-              <option value="lowest-rentan">Sorot Pendaftar vs Desil 1-5 Terendah</option>
-              <option value="lowest-pkh">Sorot Realisasi PKH Terendah</option>
-              <option value="lowest-bpnt">Sorot Realisasi BPNT Terendah</option>
-            </select>
-            <TrendingDown className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${filterMode !== 'all' ? 'text-orange-600' : 'text-slate-500'}`}/>
-            <ChevronDown className={`w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none ${filterMode !== 'all' ? 'text-orange-600' : 'text-slate-500'}`}/>
-          </div>
-
+        <div className="flex items-center gap-2 flex-wrap">
           <button 
             onClick={downloadTemplate}
             className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-50 transition-colors shadow-sm"
@@ -307,9 +492,58 @@ export default function RekapPendaftaranPage() {
         </div>
       </div>
 
+      {/* Filter and Search Bar */}
+      <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3">
+        <div className="flex flex-col sm:flex-row gap-3 flex-1">
+          <div className="relative w-full sm:w-64">
+            <input
+              type="text"
+              placeholder="Cari Kapanewon..."
+              value={searchKapanewon}
+              onChange={(e) => setSearchKapanewon(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-slate-300 rounded-lg shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          </div>
+          <div className="relative w-full sm:w-64">
+            <input
+              type="text"
+              placeholder="Cari Kalurahan..."
+              value={searchKalurahan}
+              onChange={(e) => setSearchKalurahan(e.target.value)}
+              className="w-full pl-9 pr-3 py-2 text-sm bg-white border border-slate-300 rounded-lg shadow-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-colors"
+            />
+            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+          </div>
+        </div>
+
+        <div className="relative w-full sm:w-auto">
+          <select
+            value={filterMode}
+            onChange={(e) => setFilterMode(e.target.value as FilterMode)}
+            className={`w-full sm:w-auto appearance-none pl-9 pr-8 py-2 text-sm font-medium rounded-lg transition-colors shadow-sm outline-none cursor-pointer ${filterMode !== 'all' ? 'bg-orange-50 text-orange-700 border border-orange-200' : 'bg-white text-slate-700 border border-slate-300 hover:bg-slate-50'}`}
+          >
+            <option value="all">Semua Data</option>
+            <option value="sort_capaian_desil_tertinggi">Capaian Target Tertinggi (KK Daftar vs Desil 1-5)</option>
+            <option value="sort_capaian_desil_terendah">Capaian Target Terendah (KK Daftar vs Desil 1-5)</option>
+            <option value="sort_realisasi_bpnt_tertinggi">Realisasi/Usulan BPNT Tertinggi (Daftar vs Penerima)</option>
+            <option value="sort_realisasi_bpnt_terendah">Realisasi/Usulan BPNT Terendah (Daftar vs Penerima)</option>
+            <option value="sort_realisasi_pkh_tertinggi">Realisasi/Usulan PKH Tertinggi (Daftar vs Penerima)</option>
+            <option value="sort_realisasi_pkh_terendah">Realisasi/Usulan PKH Terendah (Daftar vs Penerima)</option>
+            <option value="lowest-kk-populasi">Sorot KK Daftar vs Jumlah Keluarga Terendah</option>
+            <option value="lowest-kk-rentan">Sorot KK Daftar vs Desil 1-5 Terendah</option>
+            <option value="lowest-pkh">Sorot Realisasi PKH Terendah</option>
+            <option value="lowest-bpnt">Sorot Realisasi BPNT Terendah</option>
+            <option value="lowest-agen">Sorot Kinerja Agen Terendah</option>
+          </select>
+          <TrendingDown className={`w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none ${filterMode !== 'all' ? 'text-orange-600' : 'text-slate-500'}`}/>
+          <ChevronDown className={`w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 pointer-events-none ${filterMode !== 'all' ? 'text-orange-600' : 'text-slate-500'}`}/>
+        </div>
+      </div>
+
       <div className="bg-white rounded-lg border shadow-sm">
         <div className="p-0">
-          {loading && data.length === 0 ? (
+          {loading && rawData.length === 0 ? (
             <div className="flex justify-center items-center p-12 text-gray-500">
               <Loader2 className="h-8 w-8 animate-spin" />
               <span className="ml-2">Memuat data...</span>
@@ -321,22 +555,25 @@ export default function RekapPendaftaranPage() {
               <table className="w-full text-sm text-left whitespace-nowrap">
                 <thead className="text-xs text-gray-700 bg-gray-50 border-b">
                   <tr>
-                    <th className="px-6 py-4 font-semibold uppercase">KAPANEWON</th>
-                    <th className="px-6 py-4 font-semibold uppercase">KALURAHAN</th>
-                    <th className="px-6 py-4 font-semibold text-right">JUMLAH KELUARGA</th>
-                    <th className="px-6 py-4 font-semibold text-right">DESIL 1-5</th>
-                    <th className="px-6 py-4 font-semibold text-right">PENERIMA PKH</th>
-                    <th className="px-6 py-4 font-semibold text-right">PENERIMA BPNT</th>
-                    <th className="px-6 py-4 font-semibold text-right">TOTAL PENDAFTAR</th>
-                    <th className="px-6 py-4 font-semibold uppercase">PERIODE DTSEN</th>
-                    <th className="px-6 py-4 font-semibold uppercase">TAHUN</th>
-                    <th className="px-6 py-4 font-semibold text-center uppercase">AKSI</th>
+                    <th className="px-5 py-4 font-semibold uppercase">KAPANEWON</th>
+                    <th className="px-5 py-4 font-semibold uppercase">KALURAHAN</th>
+                    <th className="px-5 py-4 font-semibold text-right">JUMLAH KELUARGA</th>
+                    <th className="px-5 py-4 font-semibold text-right">DESIL 1-5</th>
+                    <th className="px-5 py-4 font-semibold text-right">KK DAFTAR</th>
+                    <th className="px-5 py-4 font-semibold text-right">BPNT DAFTAR</th>
+                    <th className="px-5 py-4 font-semibold text-right">PENERIMA BPNT</th>
+                    <th className="px-5 py-4 font-semibold text-right">PKH DAFTAR</th>
+                    <th className="px-5 py-4 font-semibold text-right">PENERIMA PKH</th>
+                    <th className="px-5 py-4 font-semibold text-right">AGEN</th>
+                    <th className="px-5 py-4 font-semibold text-right">AGEN AKTIF</th>
+                    <th className="px-5 py-4 font-semibold text-right">KK VIA AGEN</th>
+                    <th className="px-5 py-4 font-semibold text-center uppercase">AKSI</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-200">
                   {filteredAndSortedData.length === 0 ? (
                     <tr>
-                      <td colSpan={10} className="px-6 py-8 text-center text-gray-500">
+                      <td colSpan={13} className="px-6 py-8 text-center text-gray-500">
                         Tidak ada data ditemukan
                       </td>
                     </tr>
@@ -345,59 +582,122 @@ export default function RekapPendaftaranPage() {
                       let activeRate = 0;
                       let isLowCoverage = false;
 
-                      if (filterMode === 'lowest-populasi') {
-                        activeRate = row.populasiRate;
+                      if (filterMode === 'sort_capaian_desil_tertinggi' || filterMode === 'sort_capaian_desil_terendah') {
+                        activeRate = row.desil_1_5 > 0 ? (row.kk_daftar / row.desil_1_5) * 100 : 0;
+                        isLowCoverage = filterMode === 'sort_capaian_desil_terendah' && activeRate < 30;
+                      } else if (filterMode === 'sort_realisasi_bpnt_tertinggi' || filterMode === 'sort_realisasi_bpnt_terendah') {
+                        activeRate = row.penerima_bpnt > 0 ? (row.bpnt_daftar / row.penerima_bpnt) * 100 : 0;
+                        isLowCoverage = filterMode === 'sort_realisasi_bpnt_terendah' && activeRate < 20;
+                      } else if (filterMode === 'sort_realisasi_pkh_tertinggi' || filterMode === 'sort_realisasi_pkh_terendah') {
+                        activeRate = row.penerima_pkh > 0 ? (row.pkh_daftar / row.penerima_pkh) * 100 : 0;
+                        isLowCoverage = filterMode === 'sort_realisasi_pkh_terendah' && activeRate < 20;
+                      } else if (filterMode === 'lowest-kk-populasi') {
+                        activeRate = row.kkPopulasiRate;
                         isLowCoverage = activeRate < 30;
-                      } else if (filterMode === 'lowest-rentan') {
-                        activeRate = row.rentanRate;
+                      } else if (filterMode === 'lowest-kk-rentan') {
+                        activeRate = row.kkRentanRate;
                         isLowCoverage = activeRate < 30;
                       } else if (filterMode === 'lowest-pkh') {
-                        activeRate = row.pkhRate;
-                        isLowCoverage = activeRate < 30;
+                        activeRate = row.pkhRealisasiRate;
+                        isLowCoverage = activeRate < 20;
                       } else if (filterMode === 'lowest-bpnt') {
-                        activeRate = row.bpntRate;
+                        activeRate = row.bpntRealisasiRate;
+                        isLowCoverage = activeRate < 20;
+                      } else if (filterMode === 'lowest-agen') {
+                        activeRate = row.agenKinerjaRate;
                         isLowCoverage = activeRate < 30;
                       }
 
                       return (
-                      <tr key={row.id} className={`transition-colors ${isLowCoverage ? 'bg-red-50/80 hover:bg-red-100/80' : 'hover:bg-gray-50/50'}`}>
-                        <td className="px-6 py-4 font-medium text-gray-900">{row.kapanewon}</td>
-                        <td className="px-6 py-4">{row.kalurahan}</td>
-                        <td className="px-6 py-4 text-right tabular-nums">{Number(row.jumlah_keluarga || 0).toLocaleString('id-ID')}</td>
-                        <td className="px-6 py-4 text-right tabular-nums">{Number(row.desil_1_5 || 0).toLocaleString('id-ID')}</td>
-                        <td className="px-6 py-4 text-right tabular-nums">
+                      <tr 
+                        key={`${row.kapanewon}-${row.kalurahan}-${row.id ?? ''}`} 
+                        className={`transition-colors ${isLowCoverage ? 'bg-red-50/80 hover:bg-red-100/80' : 'hover:bg-gray-50/50'}`}
+                      >
+                        <td className="px-5 py-4 font-medium text-gray-900">{row.kapanewon}</td>
+                        <td className="px-5 py-4">{row.kalurahan}</td>
+                        <td className="px-5 py-4 text-right tabular-nums">{Number(row.jumlah_keluarga || 0).toLocaleString('id-ID')}</td>
+                        <td className="px-5 py-4 text-right tabular-nums">{Number(row.desil_1_5 || 0).toLocaleString('id-ID')}</td>
+                        
+                        {/* KK DAFTAR */}
+                        <td className="px-5 py-4 text-right tabular-nums font-medium">
                           <div className="flex flex-col items-end gap-1">
-                            <span>{Number(row.penerima_pkh || 0).toLocaleString('id-ID')}</span>
-                            {filterMode === 'lowest-pkh' && (
-                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isLowCoverage ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
-                                {row.pkhRate.toFixed(1)}%
+                            <span className="font-semibold text-gray-900">{Number(row.kk_daftar || 0).toLocaleString('id-ID')}</span>
+                            <div className="flex flex-col items-end text-xs text-muted-foreground text-gray-500 space-y-0.5">
+                              <span className="text-[11px] leading-tight">
+                                vs Desil: <span className="font-medium text-gray-700">{row.desil_1_5 > 0 ? `${((row.kk_daftar / row.desil_1_5) * 100).toFixed(1)}%` : '0.0%'}</span>
                               </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-right tabular-nums">
-                          <div className="flex flex-col items-end gap-1">
-                            <span>{Number(row.penerima_bpnt || 0).toLocaleString('id-ID')}</span>
-                            {filterMode === 'lowest-bpnt' && (
-                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isLowCoverage ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
-                                {row.bpntRate.toFixed(1)}%
+                              <span className="text-[11px] leading-tight">
+                                vs Populasi: <span className="font-medium text-gray-700">{row.jumlah_keluarga > 0 ? `${((row.kk_daftar / row.jumlah_keluarga) * 100).toFixed(1)}%` : '0.0%'}</span>
                               </span>
-                            )}
-                          </div>
-                        </td>
-                        <td className="px-6 py-4 text-right tabular-nums">
-                          <div className="flex flex-col items-end gap-1">
-                            <span>{Number(row.total_pendaftar || 0).toLocaleString('id-ID')}</span>
-                            {(filterMode === 'lowest-rentan' || filterMode === 'lowest-populasi') && (
+                            </div>
+                            {(filterMode === 'lowest-kk-populasi' || filterMode === 'lowest-kk-rentan') && (
                               <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isLowCoverage ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
                                 {activeRate.toFixed(1)}%
                               </span>
                             )}
                           </div>
                         </td>
-                        <td className="px-6 py-4">{row.periode_dtsen}</td>
-                        <td className="px-6 py-4">{row.tahun}</td>
-                        <td className="px-6 py-4 text-center">
+
+                        {/* BPNT DAFTAR */}
+                        <td className="px-5 py-4 text-right tabular-nums">
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="font-semibold text-gray-900">{Number(row.bpnt_daftar || 0).toLocaleString('id-ID')}</span>
+                            <div className="text-xs text-muted-foreground text-gray-500">
+                              <span className="text-[11px] leading-tight font-medium text-slate-600">
+                                {row.penerima_bpnt > 0 ? `${((row.bpnt_daftar / row.penerima_bpnt) * 100).toFixed(1)}% Usulan` : '0% Usulan'}
+                              </span>
+                            </div>
+                            {(filterMode === 'lowest-bpnt' || filterMode === 'sort_realisasi_bpnt_terendah') && (
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded mt-0.5 ${isLowCoverage ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                                {row.bpntRealisasiRate.toFixed(1)}%
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* PENERIMA BPNT */}
+                        <td className="px-5 py-4 text-right tabular-nums">{Number(row.penerima_bpnt || 0).toLocaleString('id-ID')}</td>
+
+                        {/* PKH DAFTAR */}
+                        <td className="px-5 py-4 text-right tabular-nums">
+                          <div className="flex flex-col items-end gap-1">
+                            <span className="font-semibold text-gray-900">{Number(row.pkh_daftar || 0).toLocaleString('id-ID')}</span>
+                            <div className="text-xs text-muted-foreground text-gray-500">
+                              <span className="text-[11px] leading-tight font-medium text-slate-600">
+                                {row.penerima_pkh > 0 ? `${((row.pkh_daftar / row.penerima_pkh) * 100).toFixed(1)}% Usulan` : '0% Usulan'}
+                              </span>
+                            </div>
+                            {(filterMode === 'lowest-pkh' || filterMode === 'sort_realisasi_pkh_terendah') && (
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded mt-0.5 ${isLowCoverage ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                                {row.pkhRealisasiRate.toFixed(1)}%
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* PENERIMA PKH */}
+                        <td className="px-5 py-4 text-right tabular-nums">{Number(row.penerima_pkh || 0).toLocaleString('id-ID')}</td>
+
+                        {/* AGEN */}
+                        <td className="px-5 py-4 text-right tabular-nums">{Number(row.agen || 0).toLocaleString('id-ID')}</td>
+
+                        {/* AGEN AKTIF */}
+                        <td className="px-5 py-4 text-right tabular-nums text-emerald-600 font-medium">{Number(row.agen_aktif || 0).toLocaleString('id-ID')}</td>
+
+                        {/* KK VIA AGEN */}
+                        <td className="px-5 py-4 text-right tabular-nums">
+                          <div className="flex flex-col items-end gap-1">
+                            <span>{Number(row.kk_via_agen || 0).toLocaleString('id-ID')}</span>
+                            {filterMode === 'lowest-agen' && (
+                              <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${isLowCoverage ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-600'}`}>
+                                {row.agenKinerjaRate.toFixed(1)}%
+                              </span>
+                            )}
+                          </div>
+                        </td>
+
+                        {/* AKSI */}
+                        <td className="px-5 py-4 text-center">
                           <div className="flex items-center justify-center space-x-2">
                             <button
                               onClick={() => openEditModal(row)}
@@ -419,16 +719,21 @@ export default function RekapPendaftaranPage() {
                     )})
                   )}
                 </tbody>
-                {data.length > 0 && (
+                {rawData.length > 0 && (
                   <tfoot className="bg-gray-50 font-semibold text-gray-900 border-t-2 border-gray-300">
                     <tr>
-                      <td colSpan={2} className="px-6 py-4 text-right uppercase">TOTAL KESELURUHAN</td>
-                      <td className="px-6 py-4 text-right tabular-nums text-red-600">{totalSum.jumlah_keluarga.toLocaleString('id-ID')}</td>
-                      <td className="px-6 py-4 text-right tabular-nums text-red-600">{totalSum.desil_1_5.toLocaleString('id-ID')}</td>
-                      <td className="px-6 py-4 text-right tabular-nums text-red-600">{totalSum.penerima_pkh.toLocaleString('id-ID')}</td>
-                      <td className="px-6 py-4 text-right tabular-nums text-red-600">{totalSum.penerima_bpnt.toLocaleString('id-ID')}</td>
-                      <td className="px-6 py-4 text-right tabular-nums text-red-600">{totalSum.total_pendaftar.toLocaleString('id-ID')}</td>
-                      <td colSpan={3}></td>
+                      <td colSpan={2} className="px-5 py-4 text-right uppercase">TOTAL KESELURUHAN</td>
+                      <td className="px-5 py-4 text-right tabular-nums text-red-600">{totalSum.jumlah_keluarga.toLocaleString('id-ID')}</td>
+                      <td className="px-5 py-4 text-right tabular-nums text-red-600">{totalSum.desil_1_5.toLocaleString('id-ID')}</td>
+                      <td className="px-5 py-4 text-right tabular-nums text-red-600">{totalSum.kk_daftar.toLocaleString('id-ID')}</td>
+                      <td className="px-5 py-4 text-right tabular-nums text-red-600">{totalSum.bpnt_daftar.toLocaleString('id-ID')}</td>
+                      <td className="px-5 py-4 text-right tabular-nums text-red-600">{totalSum.penerima_bpnt.toLocaleString('id-ID')}</td>
+                      <td className="px-5 py-4 text-right tabular-nums text-red-600">{totalSum.pkh_daftar.toLocaleString('id-ID')}</td>
+                      <td className="px-5 py-4 text-right tabular-nums text-red-600">{totalSum.penerima_pkh.toLocaleString('id-ID')}</td>
+                      <td className="px-5 py-4 text-right tabular-nums text-red-600">{totalSum.agen.toLocaleString('id-ID')}</td>
+                      <td className="px-5 py-4 text-right tabular-nums text-emerald-600">{totalSum.agen_aktif.toLocaleString('id-ID')}</td>
+                      <td className="px-5 py-4 text-right tabular-nums text-red-600">{totalSum.kk_via_agen.toLocaleString('id-ID')}</td>
+                      <td className="px-5 py-4"></td>
                     </tr>
                   </tfoot>
                 )}
@@ -441,7 +746,7 @@ export default function RekapPendaftaranPage() {
       {/* CRUD Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-white rounded-xl shadow-lg w-full max-w-md overflow-hidden flex flex-col max-h-[90vh]">
+          <div className="bg-white rounded-xl shadow-lg w-full max-w-2xl overflow-hidden flex flex-col max-h-[90vh]">
             <div className="p-4 border-b border-gray-100 flex items-center justify-between bg-gray-50 flex-shrink-0">
               <h2 className="text-lg font-semibold text-gray-800">
                 {editId ? 'Edit Data Pendaftaran' : 'Tambah Data Pendaftaran'}
@@ -456,58 +761,108 @@ export default function RekapPendaftaranPage() {
             
             <form onSubmit={handleSave} className="flex flex-col flex-1 overflow-hidden">
               <div className="p-6 overflow-y-auto space-y-4 flex-1">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Kapanewon</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.kapanewon}
-                    onChange={(e) => setFormData({ ...formData, kapanewon: e.target.value })}
-                    className="w-full border-gray-200 rounded-lg p-2 border focus:ring-red-500 focus:border-red-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Kalurahan</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.kalurahan}
-                    onChange={(e) => setFormData({ ...formData, kalurahan: e.target.value })}
-                    className="w-full border-gray-200 rounded-lg p-2 border focus:ring-red-500 focus:border-red-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Penerima PKH</label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    value={formData.penerima_pkh}
-                    onChange={(e) => setFormData({ ...formData, penerima_pkh: parseInt(e.target.value) || 0 })}
-                    className="w-full border-gray-200 rounded-lg p-2 border focus:ring-red-500 focus:border-red-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Penerima BPNT</label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    value={formData.penerima_bpnt}
-                    onChange={(e) => setFormData({ ...formData, penerima_bpnt: parseInt(e.target.value) || 0 })}
-                    className="w-full border-gray-200 rounded-lg p-2 border focus:ring-red-500 focus:border-red-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Total Pendaftar</label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    value={formData.total_pendaftar}
-                    onChange={(e) => setFormData({ ...formData, total_pendaftar: parseInt(e.target.value) || 0 })}
-                    className="w-full border-gray-200 rounded-lg p-2 border focus:ring-red-500 focus:border-red-500"
-                  />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Kapanewon</label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.kapanewon}
+                      onChange={(e) => setFormData({ ...formData, kapanewon: e.target.value })}
+                      className="w-full border-gray-200 rounded-lg p-2 border focus:ring-red-500 focus:border-red-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Kalurahan</label>
+                    <input
+                      type="text"
+                      required
+                      value={formData.kalurahan}
+                      onChange={(e) => setFormData({ ...formData, kalurahan: e.target.value })}
+                      className="w-full border-gray-200 rounded-lg p-2 border focus:ring-red-500 focus:border-red-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">KK Daftar</label>
+                    <input
+                      type="number"
+                      required
+                      min="0"
+                      value={formData.kk_daftar}
+                      onChange={(e) => setFormData({ ...formData, kk_daftar: parseInt(e.target.value) || 0 })}
+                      className="w-full border-gray-200 rounded-lg p-2 border focus:ring-red-500 focus:border-red-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">BPNT Daftar</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.bpnt_daftar}
+                      onChange={(e) => setFormData({ ...formData, bpnt_daftar: parseInt(e.target.value) || 0 })}
+                      className="w-full border-gray-200 rounded-lg p-2 border focus:ring-red-500 focus:border-red-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Penerima BPNT</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.penerima_bpnt}
+                      onChange={(e) => setFormData({ ...formData, penerima_bpnt: parseInt(e.target.value) || 0 })}
+                      className="w-full border-gray-200 rounded-lg p-2 border focus:ring-red-500 focus:border-red-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">PKH Daftar</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.pkh_daftar}
+                      onChange={(e) => setFormData({ ...formData, pkh_daftar: parseInt(e.target.value) || 0 })}
+                      className="w-full border-gray-200 rounded-lg p-2 border focus:ring-red-500 focus:border-red-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Penerima PKH</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.penerima_pkh}
+                      onChange={(e) => setFormData({ ...formData, penerima_pkh: parseInt(e.target.value) || 0 })}
+                      className="w-full border-gray-200 rounded-lg p-2 border focus:ring-red-500 focus:border-red-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Agen</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.agen}
+                      onChange={(e) => setFormData({ ...formData, agen: parseInt(e.target.value) || 0 })}
+                      className="w-full border-gray-200 rounded-lg p-2 border focus:ring-red-500 focus:border-red-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Agen Aktif</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.agen_aktif}
+                      onChange={(e) => setFormData({ ...formData, agen_aktif: parseInt(e.target.value) || 0 })}
+                      className="w-full border-gray-200 rounded-lg p-2 border focus:ring-red-500 focus:border-red-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">KK via Agen</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.kk_via_agen}
+                      onChange={(e) => setFormData({ ...formData, kk_via_agen: parseInt(e.target.value) || 0 })}
+                      className="w-full border-gray-200 rounded-lg p-2 border focus:ring-red-500 focus:border-red-500"
+                    />
+                  </div>
                 </div>
               </div>
               

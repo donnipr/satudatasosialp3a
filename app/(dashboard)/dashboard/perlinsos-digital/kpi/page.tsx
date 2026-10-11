@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { createClient } from '@/lib/supabase/client';
-import { Target, FileText, PieChart, Store, Activity, CheckCircle, AlertCircle, Loader2 } from 'lucide-react';
+import { Target, FileText, PieChart, Store, Activity, CheckCircle, AlertCircle, Loader2, Users, HeartHandshake } from 'lucide-react';
 import { ComposedChart, Area, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, ScatterChart, Scatter, ZAxis, ReferenceLine, Cell } from 'recharts';
 
 interface KPIPerlinsosData {
@@ -10,11 +10,15 @@ interface KPIPerlinsosData {
   kalurahan: string;
   jumlah_keluarga: number;
   desil_1_5: number;
-  total_pendaftar: number;
+  kk_daftar?: number;
+  total_pendaftar?: number;
+  penerima_bpnt: number;
+  bpnt_daftar?: number;
+  penerima_pkh: number;
+  pkh_daftar?: number;
   agen: number;
   agen_aktif: number;
-  penerima_pkh: number;
-  penerima_bpnt: number;
+  kk_via_agen?: number;
 }
 
 export default function AnalisisKPIPage() {
@@ -45,64 +49,106 @@ export default function AnalisisKPIPage() {
   }, []);
 
   const { metrics, chartData, lowestCoverage, mostInactiveAgents, lowestKalurahan, kpiQuadrantData } = useMemo(() => {
+    let totalKeluarga = 0;
     let totalRentan = 0;
-    let totalPendaftar = 0;
+    let totalKKDaftar = 0;
+    let totalBPNTDaftar = 0;
+    let totalPenerimaBPNT = 0;
+    let totalPKHDaftar = 0;
+    let totalPenerimaPKH = 0;
     let totalAgen = 0;
     let totalAgenAktif = 0;
-    let totalKeluarga = 0;
-    let totalPKH = 0;
-    let totalBPNT = 0;
+    let totalKKViaAgen = 0;
 
-    const kapanewonMap: Record<string, { desil_1_5: number; total_pendaftar: number; agen: number; agen_aktif: number; jumlah_keluarga: number; penerima_pkh: number; penerima_bpnt: number }> = {};
+    const kapanewonMap: Record<string, { 
+      jumlah_keluarga: number;
+      desil_1_5: number; 
+      kk_daftar: number; 
+      bpnt_daftar: number;
+      penerima_bpnt: number; 
+      pkh_daftar: number;
+      penerima_pkh: number; 
+      agen: number; 
+      agen_aktif: number; 
+      kk_via_agen: number;
+    }> = {};
 
     data.forEach((row) => {
-      totalRentan += Number(row.desil_1_5 || 0);
-      totalPendaftar += Number(row.total_pendaftar || 0);
-      totalAgen += Number(row.agen || 0);
-      totalAgenAktif += Number(row.agen_aktif || 0);
-      totalKeluarga += Number(row.jumlah_keluarga || 0);
-      totalPKH += Number(row.penerima_pkh || 0);
-      totalBPNT += Number(row.penerima_bpnt || 0);
+      const jmlKeluarga = Number(row.jumlah_keluarga || 0);
+      const desil15 = Number(row.desil_1_5 || 0);
+      const kkDaftar = Number(row.kk_daftar ?? row.total_pendaftar ?? 0);
+      const bpntDaftar = Number(row.bpnt_daftar || 0);
+      const penerimaBpnt = Number(row.penerima_bpnt || 0);
+      const pkhDaftar = Number(row.pkh_daftar || 0);
+      const penerimaPkh = Number(row.penerima_pkh || 0);
+      const agen = Number(row.agen || 0);
+      const agenAktif = Number(row.agen_aktif || 0);
+      const kkViaAgen = Number(row.kk_via_agen || 0);
+
+      totalKeluarga += jmlKeluarga;
+      totalRentan += desil15;
+      totalKKDaftar += kkDaftar;
+      totalBPNTDaftar += bpntDaftar;
+      totalPenerimaBPNT += penerimaBpnt;
+      totalPKHDaftar += pkhDaftar;
+      totalPenerimaPKH += penerimaPkh;
+      totalAgen += agen;
+      totalAgenAktif += agenAktif;
+      totalKKViaAgen += kkViaAgen;
 
       if (!kapanewonMap[row.kapanewon]) {
         kapanewonMap[row.kapanewon] = { 
+          jumlah_keluarga: 0,
           desil_1_5: 0, 
-          total_pendaftar: 0, 
+          kk_daftar: 0, 
+          bpnt_daftar: 0,
+          penerima_bpnt: 0, 
+          pkh_daftar: 0,
+          penerima_pkh: 0, 
           agen: 0, 
           agen_aktif: 0, 
-          jumlah_keluarga: 0, 
-          penerima_pkh: 0, 
-          penerima_bpnt: 0 
+          kk_via_agen: 0 
         };
       }
-      kapanewonMap[row.kapanewon].desil_1_5 += Number(row.desil_1_5 || 0);
-      kapanewonMap[row.kapanewon].total_pendaftar += Number(row.total_pendaftar || 0);
-      kapanewonMap[row.kapanewon].agen += Number(row.agen || 0);
-      kapanewonMap[row.kapanewon].agen_aktif += Number(row.agen_aktif || 0);
-      kapanewonMap[row.kapanewon].jumlah_keluarga += Number(row.jumlah_keluarga || 0);
-      kapanewonMap[row.kapanewon].penerima_pkh += Number(row.penerima_pkh || 0);
-      kapanewonMap[row.kapanewon].penerima_bpnt += Number(row.penerima_bpnt || 0);
+      kapanewonMap[row.kapanewon].jumlah_keluarga += jmlKeluarga;
+      kapanewonMap[row.kapanewon].desil_1_5 += desil15;
+      kapanewonMap[row.kapanewon].kk_daftar += kkDaftar;
+      kapanewonMap[row.kapanewon].bpnt_daftar += bpntDaftar;
+      kapanewonMap[row.kapanewon].penerima_bpnt += penerimaBpnt;
+      kapanewonMap[row.kapanewon].pkh_daftar += pkhDaftar;
+      kapanewonMap[row.kapanewon].penerima_pkh += penerimaPkh;
+      kapanewonMap[row.kapanewon].agen += agen;
+      kapanewonMap[row.kapanewon].agen_aktif += agenAktif;
+      kapanewonMap[row.kapanewon].kk_via_agen += kkViaAgen;
     });
 
-    const coverageRate = totalRentan > 0 ? (totalPendaftar / totalRentan) * 100 : 0;
+    const coverageRate = totalRentan > 0 ? (totalKKDaftar / totalRentan) * 100 : 0;
+    const populasiRate = totalKeluarga > 0 ? (totalKKDaftar / totalKeluarga) * 100 : 0;
     const agenAktifRate = totalAgen > 0 ? (totalAgenAktif / totalAgen) * 100 : 0;
+    const agenKinerjaRate = totalKKDaftar > 0 ? (totalKKViaAgen / totalKKDaftar) * 100 : 0;
+
+    const pkhRate = totalPenerimaPKH > 0 ? (totalPKHDaftar / totalPenerimaPKH) * 100 : 0;
+    const bpntRate = totalPenerimaBPNT > 0 ? (totalBPNTDaftar / totalPenerimaBPNT) * 100 : 0;
 
     const chartDataArray = Object.entries(kapanewonMap).map(([name, vals]) => {
-      const coverage = vals.desil_1_5 > 0 ? (vals.total_pendaftar / vals.desil_1_5) * 100 : 0;
+      const coverage = vals.desil_1_5 > 0 ? (vals.kk_daftar / vals.desil_1_5) * 100 : 0;
       const inaktif = vals.agen - vals.agen_aktif;
       return {
         kapanewon: name,
+        jumlah_keluarga: vals.jumlah_keluarga,
         targetRentan: vals.desil_1_5,
-        pendaftar: vals.total_pendaftar,
-        coverage: coverage,
+        desil_1_5: vals.desil_1_5,
+        kk_daftar: vals.kk_daftar,
+        coverage: Number.isFinite(coverage) ? coverage : 0,
         agen: vals.agen,
         agenAktif: vals.agen_aktif,
         agenInaktif: inaktif > 0 ? inaktif : 0,
-        jumlah_keluarga: vals.jumlah_keluarga,
-        desil_1_5: vals.desil_1_5,
         penerima_pkh: vals.penerima_pkh,
+        pkh_daftar: vals.pkh_daftar,
         penerima_bpnt: vals.penerima_bpnt,
-        sisa_pendaftar_non_bantuan: vals.total_pendaftar - (vals.penerima_pkh + vals.penerima_bpnt)
+        bpnt_daftar: vals.bpnt_daftar,
+        kk_via_agen: vals.kk_via_agen,
+        sisa_pendaftar_non_bantuan: Math.max(0, vals.kk_daftar - (vals.pkh_daftar + vals.bpnt_daftar)),
       };
     });
 
@@ -120,28 +166,34 @@ export default function AnalisisKPIPage() {
     const lowestKalurahan = [...data]
       .map(row => {
         const target = Number(row.desil_1_5 || 0);
-        const pendaftar = Number(row.total_pendaftar || 0);
-        const coverageRate = target > 0 ? (pendaftar / target) * 100 : 0;
+        const kkDaftar = Number(row.kk_daftar ?? row.total_pendaftar ?? 0);
+        const coverageRate = target > 0 ? (kkDaftar / target) * 100 : 0;
         return {
           ...row,
-          coverageRate
+          desil_1_5: target,
+          kk_daftar: kkDaftar,
+          coverageRate: Number.isFinite(coverageRate) ? coverageRate : 0,
         };
       })
       .sort((a, b) => a.coverageRate - b.coverageRate)
       .slice(0, 5);
 
     // Quadrant Matrix Data
+    // X-Axis = Capaian ((kk_daftar / desil_1_5) * 100)
+    // Y-Axis = Target (desil_1_5)
     const kpiQuadrantData = (() => {
       let sumTarget = 0;
       let sumCoverage = 0;
       
       const mapped = chartDataArray.map(item => {
-        sumTarget += item.desil_1_5;
-        sumCoverage += item.coverage;
+        const target = Number.isFinite(item.desil_1_5) ? item.desil_1_5 : 0;
+        const coverage = Number.isFinite(item.coverage) ? item.coverage : 0;
+        sumTarget += target;
+        sumCoverage += coverage;
         return {
           name: item.kapanewon,
-          target: item.desil_1_5,
-          coverage: item.coverage
+          target: target,
+          coverage: coverage,
         };
       });
       
@@ -152,10 +204,11 @@ export default function AnalisisKPIPage() {
       
       const dataWithColors = mapped.map(item => {
         let color = "#cbd5e1";
-        if (item.target >= avgTarget && item.coverage >= avgCoverage) color = "#3b82f6"; // Q2: Optimal
-        else if (item.target < avgTarget && item.coverage >= avgCoverage) color = "#22c55e"; // Q1: Aman
-        else if (item.target < avgTarget && item.coverage < avgCoverage) color = "#eab308"; // Q3: Peringatan
-        else if (item.target >= avgTarget && item.coverage < avgCoverage) color = "#ef4444"; // Q4: Darurat
+        // X = coverage, Y = target
+        if (item.coverage >= avgCoverage && item.target >= avgTarget) color = "#3b82f6"; // Q1: Optimal (Target Tinggi, Capaian Tinggi)
+        else if (item.coverage >= avgCoverage && item.target < avgTarget) color = "#22c55e"; // Q2: Aman (Target Rendah, Capaian Tinggi)
+        else if (item.coverage < avgCoverage && item.target < avgTarget) color = "#eab308"; // Q3: Peringatan (Target Rendah, Capaian Rendah)
+        else if (item.coverage < avgCoverage && item.target >= avgTarget) color = "#ef4444"; // Q4: Darurat (Target Tinggi, Capaian Rendah)
         
         return { ...item, color };
       });
@@ -164,7 +217,26 @@ export default function AnalisisKPIPage() {
     })();
 
     return {
-      metrics: { totalRentan, totalPendaftar, coverageRate, totalAgen, totalAgenAktif, agenAktifRate, totalKeluarga, totalPKH, totalBPNT },
+      metrics: { 
+        totalKeluarga, 
+        totalRentan, 
+        totalKKDaftar, 
+        coverageRate, 
+        populasiRate, 
+        totalAgen, 
+        totalAgenAktif, 
+        agenAktifRate, 
+        totalKKViaAgen, 
+        agenKinerjaRate, 
+        totalPKHDaftar, 
+        totalPenerimaPKH, 
+        pkhRate,
+        pkhRealisasiRate: pkhRate, 
+        totalBPNTDaftar, 
+        totalPenerimaBPNT, 
+        bpntRate,
+        bpntRealisasiRate: bpntRate, 
+      },
       chartData: chartDataArray,
       lowestCoverage: lowestCoverageArray,
       mostInactiveAgents: mostInactiveAgentsArray,
@@ -173,7 +245,7 @@ export default function AnalisisKPIPage() {
     };
   }, [data]);
 
-  const { totalKeluarga, totalRentan, totalPendaftar, totalPKH, totalBPNT } = metrics;
+  const { totalKeluarga, totalRentan, totalKKDaftar, totalPenerimaPKH, totalPenerimaBPNT, totalPKHDaftar, totalBPNTDaftar, pkhRate, bpntRate } = metrics;
 
   if (error) {
     return (
@@ -192,7 +264,7 @@ export default function AnalisisKPIPage() {
       <div className="flex flex-col space-y-2">
         <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">Analisis KPI Perlinsos & Agen</h1>
         <p className="text-base text-gray-500 max-w-3xl">
-          Visualisasi interaktif mengenai capaian target kelompok rentan dan kesiapan agen. Analisis ini membantu mengidentifikasi area yang membutuhkan intervensi prioritas.
+          Visualisasi interaktif mengenai capaian target kelompok rentan (Desil 1-5), verifikasi program sosial (PKH & BPNT), dan kesiapan agen perlinsos digital.
         </p>
       </div>
 
@@ -203,7 +275,20 @@ export default function AnalisisKPIPage() {
       ) : (
         <>
           {/* Section 1: Stat Cards */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-7 gap-4 xl:gap-5">
+            <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between transition-transform hover:-translate-y-1 duration-300">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Jumlah Keluarga</h3>
+                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                  <Users className="w-4 h-4" />
+                </div>
+              </div>
+              <div>
+                <span className="text-2xl font-bold text-gray-900 tabular-nums">{metrics.totalKeluarga.toLocaleString('id-ID')}</span>
+                <p className="text-[11px] text-gray-400 mt-1">Total Populasi Dasar (DTSEN)</p>
+              </div>
+            </div>
+
             <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between transition-transform hover:-translate-y-1 duration-300">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Desil 1 - 5</h3>
@@ -211,37 +296,50 @@ export default function AnalisisKPIPage() {
                   <Target className="w-4 h-4" />
                 </div>
               </div>
-              <span className="text-2xl font-bold text-gray-900 tabular-nums">{metrics.totalRentan.toLocaleString('id-ID')}</span>
+              <div>
+                <span className="text-2xl font-bold text-gray-900 tabular-nums">{metrics.totalRentan.toLocaleString('id-ID')}</span>
+                <p className="text-[11px] text-gray-400 mt-1">Target Prioritas Rentan</p>
+              </div>
             </div>
 
             <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between transition-transform hover:-translate-y-1 duration-300">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Total Pendaftar</h3>
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Total KK Daftar</h3>
                 <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
                   <FileText className="w-4 h-4" />
                 </div>
               </div>
-              <span className="text-2xl font-bold text-gray-900 tabular-nums">{metrics.totalPendaftar.toLocaleString('id-ID')}</span>
+              <div>
+                <span className="text-2xl font-bold text-gray-900 tabular-nums">{metrics.totalKKDaftar.toLocaleString('id-ID')}</span>
+                <p className="text-[11px] text-gray-400 mt-1">Capaian Pendaftaran KK</p>
+              </div>
             </div>
 
             <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between transition-transform hover:-translate-y-1 duration-300">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Cakupan</h3>
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Cakupan Rentan</h3>
                 <div className="p-2 bg-purple-50 text-purple-600 rounded-lg">
                   <PieChart className="w-4 h-4" />
                 </div>
               </div>
-              <span className="text-2xl font-bold text-gray-900 tabular-nums">{metrics.coverageRate.toFixed(1)}%</span>
+              <div>
+                <span className="text-2xl font-bold text-gray-900 tabular-nums">{metrics.coverageRate.toFixed(1)}%</span>
+                <p className="text-[11px] text-gray-400 mt-1">KK Daftar / Desil 1-5</p>
+              </div>
             </div>
 
             <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between transition-transform hover:-translate-y-1 duration-300">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Total Agen</h3>
-                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
-                  <Store className="w-4 h-4" />
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Kuota Penerima & Usulan</h3>
+                <div className="p-2 bg-rose-50 text-rose-600 rounded-lg">
+                  <HeartHandshake className="w-4 h-4" />
                 </div>
               </div>
-              <span className="text-2xl font-bold text-gray-900 tabular-nums">{metrics.totalAgen.toLocaleString('id-ID')}</span>
+              <div>
+                <span className="text-2xl font-bold text-gray-900 tabular-nums">{(metrics.totalPenerimaPKH + metrics.totalPenerimaBPNT).toLocaleString('id-ID')}</span>
+                <p className="text-[11px] text-gray-500 mt-1">Kuota Aktif (PKH: {metrics.totalPenerimaPKH.toLocaleString('id-ID')} | BPNT: {metrics.totalPenerimaBPNT.toLocaleString('id-ID')})</p>
+                <p className="text-[10px] text-rose-600 font-semibold mt-0.5">Total Usulan Baru: {(metrics.totalPKHDaftar + metrics.totalBPNTDaftar).toLocaleString('id-ID')}</p>
+              </div>
             </div>
 
             <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between transition-transform hover:-translate-y-1 duration-300">
@@ -251,83 +349,103 @@ export default function AnalisisKPIPage() {
                   <Activity className="w-4 h-4" />
                 </div>
               </div>
-              <span className="text-2xl font-bold text-gray-900 tabular-nums">{metrics.totalAgenAktif.toLocaleString('id-ID')}</span>
+              <div>
+                <span className="text-2xl font-bold text-gray-900 tabular-nums">{metrics.totalAgenAktif.toLocaleString('id-ID')} <span className="text-sm font-normal text-gray-400">/ {metrics.totalAgen.toLocaleString('id-ID')}</span></span>
+                <p className="text-[11px] text-emerald-600 font-semibold mt-1">{metrics.agenAktifRate.toFixed(1)}% Kesiapan Agen</p>
+              </div>
             </div>
 
             <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex flex-col justify-between transition-transform hover:-translate-y-1 duration-300">
               <div className="flex items-center justify-between mb-3">
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">Keaktifan Agen</h3>
-                <div className="p-2 bg-rose-50 text-rose-600 rounded-lg">
-                  <CheckCircle className="w-4 h-4" />
+                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-wider">KK via Agen</h3>
+                <div className="p-2 bg-blue-50 text-blue-600 rounded-lg">
+                  <Store className="w-4 h-4" />
                 </div>
               </div>
-              <span className="text-2xl font-bold text-gray-900 tabular-nums">{metrics.agenAktifRate.toFixed(1)}%</span>
+              <div>
+                <span className="text-2xl font-bold text-gray-900 tabular-nums">{metrics.totalKKViaAgen.toLocaleString('id-ID')}</span>
+                <p className="text-[11px] text-blue-600 font-semibold mt-1">{metrics.agenKinerjaRate.toFixed(1)}% Kontribusi Pendaftar</p>
+              </div>
             </div>
           </div>
 
-          {/* Section 2: Interactive Bar Charts */}
+          {/* Section 2: Interactive Progress Bars & Composed Charts */}
           <div className="grid grid-cols-1 gap-6">
             
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col space-y-6">
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Indikator Capaian Global Kabupaten</h3>
-                <p className="text-sm text-gray-500">Persentase capaian target pendaftaran dan penyaluran bantuan perlinsos secara keseluruhan.</p>
+                <p className="text-sm text-gray-500">Evaluasi menyeluruh capaian pendaftaran KK, realisasi bantuan sosial programatik, dan penetrasi agen.</p>
               </div>
               <div className="flex flex-col space-y-6 mt-4">
                 
-                {/* 1. Pendaftar vs Populasi */}
+                {/* 1. KK Daftar vs Populasi */}
                 <div className="flex flex-col space-y-2">
                   <div className="flex justify-between items-end text-sm">
-                    <span className="font-semibold text-gray-700">Pendaftar vs Populasi (Jumlah Keluarga)</span>
+                    <span className="font-semibold text-gray-700">KK Daftar vs Populasi (Jumlah Keluarga)</span>
                     <span className="text-gray-500 font-medium tabular-nums">
-                      {totalPendaftar.toLocaleString('id-ID')} / {totalKeluarga.toLocaleString('id-ID')}
-                      <span className="text-gray-900 font-bold ml-1">({(totalKeluarga ? (totalPendaftar / totalKeluarga) * 100 : 0).toFixed(1)}%)</span>
+                      {totalKKDaftar.toLocaleString('id-ID')} / {totalKeluarga.toLocaleString('id-ID')}
+                      <span className="text-gray-900 font-bold ml-1">({metrics.populasiRate.toFixed(1)}%)</span>
                     </span>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-4 overflow-hidden">
-                    <div className="bg-blue-500 h-full rounded-full transition-all duration-500" style={{ width: `${Math.min((totalKeluarga ? (totalPendaftar / totalKeluarga) * 100 : 0), 100)}%` }}></div>
+                    <div className="bg-blue-500 h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(metrics.populasiRate, 100)}%` }}></div>
                   </div>
                 </div>
 
-                {/* 2. Pendaftar vs Target Rentan */}
+                {/* 2. KK Daftar vs Target Rentan */}
                 <div className="flex flex-col space-y-2">
                   <div className="flex justify-between items-end text-sm">
-                    <span className="font-semibold text-gray-700">Pendaftar vs Target Rentan (Desil 1-5)</span>
+                    <span className="font-semibold text-gray-700">KK Daftar vs Target Prioritas (Desil 1-5)</span>
                     <span className="text-gray-500 font-medium tabular-nums">
-                      {totalPendaftar.toLocaleString('id-ID')} / {totalRentan.toLocaleString('id-ID')}
-                      <span className="text-gray-900 font-bold ml-1">({(totalRentan ? (totalPendaftar / totalRentan) * 100 : 0).toFixed(1)}%)</span>
+                      {totalKKDaftar.toLocaleString('id-ID')} / {totalRentan.toLocaleString('id-ID')}
+                      <span className="text-gray-900 font-bold ml-1">({metrics.coverageRate.toFixed(1)}%)</span>
                     </span>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-4 overflow-hidden">
-                    <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${Math.min((totalRentan ? (totalPendaftar / totalRentan) * 100 : 0), 100)}%` }}></div>
+                    <div className="bg-emerald-500 h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(metrics.coverageRate, 100)}%` }}></div>
                   </div>
                 </div>
 
-                {/* 3. Realisasi Penerima PKH */}
+                {/* 3. Usulan Penerima PKH */}
                 <div className="flex flex-col space-y-2">
                   <div className="flex justify-between items-end text-sm">
-                    <span className="font-semibold text-gray-700">Realisasi Penerima PKH (dari Total Pendaftar)</span>
+                    <span className="font-semibold text-gray-700">Persentase Usulan PKH (PKH Daftar vs Kuota Penerima)</span>
                     <span className="text-gray-500 font-medium tabular-nums">
-                      {totalPKH.toLocaleString('id-ID')} / {totalPendaftar.toLocaleString('id-ID')}
-                      <span className="text-gray-900 font-bold ml-1">({(totalPendaftar ? (totalPKH / totalPendaftar) * 100 : 0).toFixed(1)}%)</span>
+                      {totalPKHDaftar.toLocaleString('id-ID')} / {totalPenerimaPKH.toLocaleString('id-ID')}
+                      <span className="text-gray-900 font-bold ml-1">({pkhRate.toFixed(1)}%)</span>
                     </span>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-4 overflow-hidden">
-                    <div className="bg-rose-500 h-full rounded-full transition-all duration-500" style={{ width: `${Math.min((totalPendaftar ? (totalPKH / totalPendaftar) * 100 : 0), 100)}%` }}></div>
+                    <div className="bg-rose-500 h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(pkhRate, 100)}%` }}></div>
                   </div>
                 </div>
 
-                {/* 4. Realisasi Penerima BPNT */}
+                {/* 4. Usulan Penerima BPNT */}
                 <div className="flex flex-col space-y-2">
                   <div className="flex justify-between items-end text-sm">
-                    <span className="font-semibold text-gray-700">Realisasi Penerima BPNT (dari Total Pendaftar)</span>
+                    <span className="font-semibold text-gray-700">Persentase Usulan BPNT (BPNT Daftar vs Kuota Penerima)</span>
                     <span className="text-gray-500 font-medium tabular-nums">
-                      {totalBPNT.toLocaleString('id-ID')} / {totalPendaftar.toLocaleString('id-ID')}
-                      <span className="text-gray-900 font-bold ml-1">({(totalPendaftar ? (totalBPNT / totalPendaftar) * 100 : 0).toFixed(1)}%)</span>
+                      {totalBPNTDaftar.toLocaleString('id-ID')} / {totalPenerimaBPNT.toLocaleString('id-ID')}
+                      <span className="text-gray-900 font-bold ml-1">({bpntRate.toFixed(1)}%)</span>
                     </span>
                   </div>
                   <div className="w-full bg-slate-100 rounded-full h-4 overflow-hidden">
-                    <div className="bg-amber-500 h-full rounded-full transition-all duration-500" style={{ width: `${Math.min((totalPendaftar ? (totalBPNT / totalPendaftar) * 100 : 0), 100)}%` }}></div>
+                    <div className="bg-amber-500 h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(bpntRate, 100)}%` }}></div>
+                  </div>
+                </div>
+
+                {/* 5. Kinerja Pendaftaran via Agen */}
+                <div className="flex flex-col space-y-2">
+                  <div className="flex justify-between items-end text-sm">
+                    <span className="font-semibold text-gray-700">Kontribusi Pendaftaran via Agen (KK via Agen / KK Daftar)</span>
+                    <span className="text-gray-500 font-medium tabular-nums">
+                      {metrics.totalKKViaAgen.toLocaleString('id-ID')} / {totalKKDaftar.toLocaleString('id-ID')}
+                      <span className="text-gray-900 font-bold ml-1">({metrics.agenKinerjaRate.toFixed(1)}%)</span>
+                    </span>
+                  </div>
+                  <div className="w-full bg-slate-100 rounded-full h-4 overflow-hidden">
+                    <div className="bg-teal-500 h-full rounded-full transition-all duration-500" style={{ width: `${Math.min(metrics.agenKinerjaRate, 100)}%` }}></div>
                   </div>
                 </div>
 
@@ -337,7 +455,7 @@ export default function AnalisisKPIPage() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col space-y-4">
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Analisis Capaian Pendaftar vs Target & Realisasi</h3>
-                <p className="text-sm text-gray-500">Evaluasi menyeluruh Total Pendaftar dibandingkan dengan Total Keluarga (Populasi), Target Desil 1-5, dan Realisasi Penerima Bantuan per kapanewon.</p>
+                <p className="text-sm text-gray-500">Evaluasi komprehensif KK Daftar dibandingkan dengan Total Keluarga (Populasi), Target Desil 1-5, dan Realisasi Penerima Bantuan per kapanewon.</p>
               </div>
               <div className="h-[400px] w-full mt-4">
                 <ResponsiveContainer width="100%" height="100%">
@@ -348,10 +466,10 @@ export default function AnalisisKPIPage() {
                     <Tooltip cursor={{ fill: '#f3f4f6' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.1)' }} formatter={(value: any) => value ? Number(value).toLocaleString('id-ID') : '0'} />
                     <Legend wrapperStyle={{ paddingTop: '10px' }} />
                     <Area type="monotone" dataKey="jumlah_keluarga" name="Total Keluarga (Populasi)" fill="#f1f5f9" stroke="#cbd5e1" />
-                    <Bar dataKey="penerima_pkh" name="Penerima PKH" stackId="pendaftar" fill="#fb7185" maxBarSize={40} />
-                    <Bar dataKey="penerima_bpnt" name="Penerima BPNT" stackId="pendaftar" fill="#fbbf24" maxBarSize={40} />
-                    <Bar dataKey="sisa_pendaftar_non_bantuan" name="Belum Terdaftar Perlinsos" stackId="pendaftar" fill="#94a3b8" maxBarSize={40} radius={[4, 4, 0, 0]} />
-                    <Line type="monotone" dataKey="desil_1_5" name="Desil 1 - 5" stroke="#ea580c" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+                    <Bar dataKey="pkh_daftar" name="Usulan PKH" stackId="pendaftar" fill="#fb7185" maxBarSize={40} />
+                    <Bar dataKey="bpnt_daftar" name="Usulan BPNT" stackId="pendaftar" fill="#fbbf24" maxBarSize={40} />
+                    <Bar dataKey="sisa_pendaftar_non_bantuan" name="Pendaftar Non-Bantuan" stackId="pendaftar" fill="#94a3b8" maxBarSize={40} radius={[4, 4, 0, 0]} />
+                    <Line type="monotone" dataKey="desil_1_5" name="Target Desil 1 - 5" stroke="#ea580c" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
                   </ComposedChart>
                 </ResponsiveContainer>
               </div>
@@ -360,7 +478,7 @@ export default function AnalisisKPIPage() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col space-y-4">
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Kesiapan Agen: Total vs Aktif</h3>
-                <p className="text-sm text-gray-500">Perbandingan jumlah total agen terdaftar dengan jumlah agen yang saat ini aktif beroperasi.</p>
+                <p className="text-sm text-gray-500">Perbandingan jumlah total agen terdaftar dengan jumlah agen yang saat ini aktif beroperasi di tiap kapanewon.</p>
               </div>
               <div className="h-80 w-full mt-4">
                 <ResponsiveContainer width="100%" height="100%">
@@ -377,39 +495,45 @@ export default function AnalisisKPIPage() {
               </div>
             </div>
 
+            {/* Performance Quadrant: X = Capaian ((kk_daftar / desil_1_5) * 100), Y = Target (desil_1_5) */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6 flex flex-col space-y-4">
               <div>
                 <h3 className="text-lg font-bold text-gray-900">Matriks Kuadran Performa Kapanewon</h3>
-                <p className="text-sm text-gray-500">Analisis sebaran performa berdasarkan volume target (Desil 1-5) dan tingkat capaian (Coverage). Kuadran merah menunjukkan target tinggi dengan capaian rendah (Darurat).</p>
+                <p className="text-sm text-gray-500">
+                  Analisis sebaran performa berdasarkan <strong>Sumbu X: Tingkat Capaian (KK Daftar / Desil 1-5 %)</strong> dan <strong>Sumbu Y: Volume Target (Desil 1-5)</strong>. Kuadran merah menunjukkan prioritas darurat (target tinggi dengan capaian rendah).
+                </p>
               </div>
               <div className="h-[400px] w-full mt-4">
                 <ResponsiveContainer width="100%" height="100%">
                   <ScatterChart margin={{ top: 20, right: 20, bottom: 20, left: 20 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-                    <XAxis type="number" dataKey="target" name="Target (Desil 1-5)" tick={{ fontSize: 11, fill: '#6b7280' }} />
-                    <YAxis type="number" dataKey="coverage" name="Capaian" tick={{ fontSize: 11, fill: '#6b7280' }} unit="%" />
+                    <XAxis type="number" dataKey="coverage" name="Capaian" tick={{ fontSize: 11, fill: '#6b7280' }} unit="%" />
+                    <YAxis type="number" dataKey="target" name="Target (Desil 1-5)" tick={{ fontSize: 11, fill: '#6b7280' }} />
                     <ZAxis type="category" dataKey="name" name="Kapanewon" />
-                    <Tooltip cursor={{ strokeDasharray: '3 3' }} 
-                             content={({ active, payload }) => {
-                               if (active && payload && payload.length) {
-                                 const data = payload[0].payload;
-                                 return (
-                                   <div className="bg-white p-3 border border-slate-200 rounded-md shadow-md text-sm z-50 relative">
-                                     <p className="font-bold text-slate-800 mb-2 border-b pb-1">{data.name || 'Unknown'}</p>
-                                     <p className="text-slate-600 mb-1">
-                                       <span className="font-semibold">Capaian:</span> {data.coverage ? data.coverage.toFixed(1) : 0}%
-                                     </p>
-                                     <p className="text-slate-600">
-                                       <span className="font-semibold">Target (Desil 1-5):</span> {data.target ? data.target.toLocaleString('id-ID') : 0}
-                                     </p>
-                                   </div>
-                                 );
-                               }
-                               return null;
-                             }}
+                    <Tooltip 
+                      cursor={{ strokeDasharray: '3 3' }} 
+                      content={({ active, payload }) => {
+                        if (active && payload && payload.length) {
+                          const pt = payload[0].payload;
+                          const cov = Number.isFinite(pt.coverage) ? pt.coverage : 0;
+                          const tgt = Number.isFinite(pt.target) ? pt.target : 0;
+                          return (
+                            <div className="bg-white p-3 border border-slate-200 rounded-md shadow-md text-sm z-50 relative">
+                              <p className="font-bold text-slate-800 mb-2 border-b pb-1">{pt.name || 'Unknown'}</p>
+                              <p className="text-slate-600 mb-1">
+                                <span className="font-semibold">Capaian (X):</span> {cov.toFixed(1)}%
+                              </p>
+                              <p className="text-slate-600">
+                                <span className="font-semibold">Target Desil 1-5 (Y):</span> {tgt.toLocaleString('id-ID')}
+                              </p>
+                            </div>
+                          );
+                        }
+                        return null;
+                      }}
                     />
-                    <ReferenceLine x={kpiQuadrantData.avgTarget} stroke="#94a3b8" strokeDasharray="3 3" label={{ position: 'top', value: 'Rata-rata Target', fill: '#64748b', fontSize: 10 }} />
-                    <ReferenceLine y={kpiQuadrantData.avgCoverage} stroke="#94a3b8" strokeDasharray="3 3" label={{ position: 'right', value: 'Rata-rata Capaian', fill: '#64748b', fontSize: 10 }} />
+                    <ReferenceLine x={kpiQuadrantData.avgCoverage} stroke="#94a3b8" strokeDasharray="3 3" label={{ position: 'top', value: 'Rata-rata Capaian', fill: '#64748b', fontSize: 10 }} />
+                    <ReferenceLine y={kpiQuadrantData.avgTarget} stroke="#94a3b8" strokeDasharray="3 3" label={{ position: 'right', value: 'Rata-rata Target', fill: '#64748b', fontSize: 10 }} />
                     <Scatter name="Kapanewon" data={kpiQuadrantData.data}>
                       {kpiQuadrantData.data.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={entry.color} />
@@ -430,7 +554,7 @@ export default function AnalisisKPIPage() {
           {/* Section 3: Actionable Insights */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             
-            {/* Table 1 */}
+            {/* Table 1: Top 5 Cakupan Terendah */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col overflow-hidden">
               <div className="p-5 border-b border-gray-50 bg-red-50/30">
                 <h3 className="text-md font-bold text-gray-900 flex items-center gap-2">
@@ -444,7 +568,7 @@ export default function AnalisisKPIPage() {
                     <tr>
                       <th className="px-5 py-3 font-semibold">Kapanewon</th>
                       <th className="px-5 py-3 font-semibold text-right">Target</th>
-                      <th className="px-5 py-3 font-semibold text-right">Pendaftar</th>
+                      <th className="px-5 py-3 font-semibold text-right">KK Daftar</th>
                       <th className="px-5 py-3 font-semibold text-right">% Cakupan</th>
                     </tr>
                   </thead>
@@ -465,7 +589,7 @@ export default function AnalisisKPIPage() {
                               {item.kapanewon}
                             </td>
                             <td className="px-5 py-3 text-right tabular-nums">{item.targetRentan.toLocaleString('id-ID')}</td>
-                            <td className="px-5 py-3 text-right tabular-nums">{item.pendaftar.toLocaleString('id-ID')}</td>
+                            <td className="px-5 py-3 text-right tabular-nums">{item.kk_daftar.toLocaleString('id-ID')}</td>
                             <td className="px-5 py-3 text-right font-bold tabular-nums">
                               <span className={`px-2 py-1 rounded text-xs ${isCritical ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
                                 {item.coverage.toFixed(1)}%
@@ -480,7 +604,7 @@ export default function AnalisisKPIPage() {
               </div>
             </div>
 
-            {/* Table 2 */}
+            {/* Table 2: Top 5 Agen Inaktif */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col overflow-hidden">
               <div className="p-5 border-b border-gray-50 bg-amber-50/30">
                 <h3 className="text-md font-bold text-gray-900 flex items-center gap-2">
@@ -530,14 +654,14 @@ export default function AnalisisKPIPage() {
               </div>
             </div>
 
-            {/* Table 3 */}
+            {/* Table 3: Top 5 Kalurahan Intervensi */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex flex-col overflow-hidden">
               <div className="p-5 border-b border-gray-50 bg-rose-50/30">
                 <h3 className="text-md font-bold text-gray-900 flex items-center gap-2">
                   <AlertCircle className="w-4 h-4 text-rose-500" />
                   Top 5 Kalurahan Perlu Intervensi
                 </h3>
-                <p className="text-xs text-gray-500 mt-1">Capaian Pendaftar vs Desil 1-5 Terendah</p>
+                <p className="text-xs text-gray-500 mt-1">Capaian KK Daftar vs Desil 1-5 Terendah</p>
               </div>
               <div className="overflow-x-auto">
                 <table className="w-full text-sm text-left whitespace-nowrap">
@@ -546,7 +670,7 @@ export default function AnalisisKPIPage() {
                       <th className="px-5 py-3 font-semibold">Kalurahan</th>
                       <th className="px-5 py-3 font-semibold">Kapanewon</th>
                       <th className="px-5 py-3 font-semibold text-right">Target</th>
-                      <th className="px-5 py-3 font-semibold text-right">Pendaftar</th>
+                      <th className="px-5 py-3 font-semibold text-right">KK Daftar</th>
                       <th className="px-5 py-3 font-semibold text-right">% Capaian</th>
                     </tr>
                   </thead>
@@ -567,7 +691,7 @@ export default function AnalisisKPIPage() {
                             </td>
                             <td className="px-5 py-3 text-gray-500">{item.kapanewon}</td>
                             <td className="px-5 py-3 text-right tabular-nums">{Number(item.desil_1_5 || 0).toLocaleString('id-ID')}</td>
-                            <td className="px-5 py-3 text-right tabular-nums">{Number(item.total_pendaftar || 0).toLocaleString('id-ID')}</td>
+                            <td className="px-5 py-3 text-right tabular-nums">{Number(item.kk_daftar || 0).toLocaleString('id-ID')}</td>
                             <td className="px-5 py-3 text-right font-bold tabular-nums">
                               <span className={`text-rose-600 font-bold`}>
                                 {item.coverageRate.toFixed(1)}%
