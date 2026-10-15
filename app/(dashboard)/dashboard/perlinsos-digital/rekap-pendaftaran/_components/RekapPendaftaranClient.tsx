@@ -29,6 +29,18 @@ interface RekapPendaftaran {
   tahun?: string | number;
 }
 
+/** Safely parses any value (number, string with commas/spaces, null/undefined) to a valid number. */
+function toSafeNumber(val: unknown): number {
+  if (val === null || val === undefined || val === '') return 0;
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+  if (typeof val === 'string') {
+    const cleaned = val.replace(/,/g, '').trim();
+    const num = Number(cleaned);
+    return isNaN(num) ? 0 : num;
+  }
+  const num = Number(val);
+  return isNaN(num) ? 0 : num;
+}
 
 type FilterMode = 
   | 'all' 
@@ -169,7 +181,7 @@ export default function RekapPendaftaranClient() {
         // New row, or the view's id didn't match a base-table row: write by natural key
         const { error } = await supabase
           .from(TABLE_NAME)
-          .upsert(payload, { onConflict: 'kapanewon,kalurahan', ignoreDuplicates: false });
+          .upsert(payload, { onConflict: 'kapanewon, kalurahan', ignoreDuplicates: false });
         if (error) throw error;
       }
 
@@ -274,25 +286,35 @@ export default function RekapPendaftaranClient() {
     Papa.parse(file, {
       header: true,
       skipEmptyLines: true,
+      transformHeader: (header: string) => header.trim().toLowerCase().replace(/[\s\-_]+/g, '_'),
       complete: async (results) => {
         try {
           const formattedData = results.data
             .filter((row: any) => row.kapanewon && row.kalurahan)
             .map((row: any) => {
-              const kkDaftar = parseInt(row.kk_daftar, 10) || parseInt(row.total_pendaftar, 10) || 0;
+              const kkDaftar = Number(toSafeNumber(row.kk_daftar ?? row.total_pendaftar ?? row.kkdaftar ?? row.totalpendaftar)) || 0;
+              const bpntDaftar = Number(toSafeNumber(row.bpnt_daftar ?? row.bpntdaftar)) || 0;
+              const penerimaBpnt = Number(toSafeNumber(row.penerima_bpnt ?? row.penerimabpnt)) || 0;
+              const pkhDaftar = Number(toSafeNumber(row.pkh_daftar ?? row.pkhdaftar)) || 0;
+              const penerimaPkh = Number(toSafeNumber(row.penerima_pkh ?? row.penerimapkh)) || 0;
+              const agen = Number(toSafeNumber(row.agen ?? row.total_agen ?? row.totalagen)) || 0;
+              const agenAktif = Number(toSafeNumber(row.agen_aktif ?? row.agenaktif)) || 0;
+              const kkViaAgen = Number(toSafeNumber(row.kk_via_agen ?? row.kkviaagen)) || 0;
+              const tahun = Number(toSafeNumber(row.tahun)) || new Date().getFullYear();
+
               return {
                 kapanewon: String(row.kapanewon).trim(),
                 kalurahan: String(row.kalurahan).trim(),
                 kk_daftar: kkDaftar,
-                bpnt_daftar: parseInt(row.bpnt_daftar, 10) || 0,
-                penerima_bpnt: parseInt(row.penerima_bpnt, 10) || 0,
-                pkh_daftar: parseInt(row.pkh_daftar, 10) || 0,
-                penerima_pkh: parseInt(row.penerima_pkh, 10) || 0,
-                agen: parseInt(row.agen, 10) || 0,
-                agen_aktif: parseInt(row.agen_aktif, 10) || 0,
-                kk_via_agen: parseInt(row.kk_via_agen, 10) || 0,
+                bpnt_daftar: bpntDaftar,
+                penerima_bpnt: penerimaBpnt,
+                pkh_daftar: pkhDaftar,
+                penerima_pkh: penerimaPkh,
+                agen: agen,
+                agen_aktif: agenAktif,
+                kk_via_agen: kkViaAgen,
                 periode_dtsen: row.periode_dtsen || 'Periode 3.2',
-                tahun: parseInt(row.tahun, 10) || new Date().getFullYear(),
+                tahun: tahun,
                 total_pendaftar: kkDaftar,
               };
             });
@@ -305,7 +327,7 @@ export default function RekapPendaftaranClient() {
           const { error } = await supabase
             .from(TABLE_NAME)
             .upsert(formattedData, {
-              onConflict: 'kapanewon,kalurahan',
+              onConflict: 'kapanewon, kalurahan',
               ignoreDuplicates: false
             });
             
@@ -332,18 +354,18 @@ export default function RekapPendaftaranClient() {
   };
 
   const totalSum = useMemo(() => {
-    return rawData.reduce(
+    return (rawData || []).reduce(
       (acc, curr) => {
-        acc.jumlah_keluarga += Number(curr.jumlah_keluarga || 0);
-        acc.desil_1_5 += Number(curr.desil_1_5 || 0);
-        acc.kk_daftar += Number(curr.kk_daftar ?? curr.total_pendaftar ?? 0);
-        acc.bpnt_daftar += Number(curr.bpnt_daftar || 0);
-        acc.penerima_bpnt += Number(curr.penerima_bpnt || 0);
-        acc.pkh_daftar += Number(curr.pkh_daftar || 0);
-        acc.penerima_pkh += Number(curr.penerima_pkh || 0);
-        acc.agen += Number(curr.total_agen ?? curr.agen ?? 0);
-        acc.agen_aktif += Number(curr.agen_aktif || 0);
-        acc.kk_via_agen += Number(curr.kk_via_agen || 0);
+        acc.jumlah_keluarga += Number(toSafeNumber(curr.jumlah_keluarga)) || 0;
+        acc.desil_1_5 += Number(toSafeNumber(curr.desil_1_5)) || 0;
+        acc.kk_daftar += Number(toSafeNumber(curr.kk_daftar ?? curr.total_pendaftar)) || 0;
+        acc.bpnt_daftar += Number(toSafeNumber(curr.bpnt_daftar)) || 0;
+        acc.penerima_bpnt += Number(toSafeNumber(curr.penerima_bpnt)) || 0;
+        acc.pkh_daftar += Number(toSafeNumber(curr.pkh_daftar)) || 0;
+        acc.penerima_pkh += Number(toSafeNumber(curr.penerima_pkh)) || 0;
+        acc.agen += Number(toSafeNumber(curr.total_agen ?? curr.agen)) || 0;
+        acc.agen_aktif += Number(toSafeNumber(curr.agen_aktif)) || 0;
+        acc.kk_via_agen += Number(toSafeNumber(curr.kk_via_agen)) || 0;
         return acc;
       },
       {
@@ -372,16 +394,16 @@ export default function RekapPendaftaranClient() {
     });
 
     const processedData = filtered.map((row) => {
-      const jumlahKeluarga = Number(row.jumlah_keluarga || 0);
-      const desil15 = Number(row.desil_1_5 || 0);
-      const kkDaftar = Number(row.kk_daftar ?? row.total_pendaftar ?? 0);
-      const bpntDaftar = Number(row.bpnt_daftar || 0);
-      const penerimaBpnt = Number(row.penerima_bpnt || 0);
-      const pkhDaftar = Number(row.pkh_daftar || 0);
-      const penerimaPkh = Number(row.penerima_pkh || 0);
-      const agen = Number(row.total_agen ?? row.agen ?? 0);
-      const agenAktif = Number(row.agen_aktif || 0);
-      const kkViaAgen = Number(row.kk_via_agen || 0);
+      const jumlahKeluarga = Number(toSafeNumber(row.jumlah_keluarga)) || 0;
+      const desil15 = Number(toSafeNumber(row.desil_1_5)) || 0;
+      const kkDaftar = Number(toSafeNumber(row.kk_daftar ?? row.total_pendaftar)) || 0;
+      const bpntDaftar = Number(toSafeNumber(row.bpnt_daftar)) || 0;
+      const penerimaBpnt = Number(toSafeNumber(row.penerima_bpnt)) || 0;
+      const pkhDaftar = Number(toSafeNumber(row.pkh_daftar)) || 0;
+      const penerimaPkh = Number(toSafeNumber(row.penerima_pkh)) || 0;
+      const agen = Number(toSafeNumber(row.total_agen ?? row.agen)) || 0;
+      const agenAktif = Number(toSafeNumber(row.agen_aktif)) || 0;
+      const kkViaAgen = Number(toSafeNumber(row.kk_via_agen)) || 0;
 
       // Calculations per analytical angles
       const kkPopulasiRate = jumlahKeluarga > 0 ? (kkDaftar / jumlahKeluarga) * 100 : 0;
@@ -532,16 +554,16 @@ export default function RekapPendaftaranClient() {
 
       const group = map.get(kap)!;
       group.rows.push(row);
-      group.subtotals.jumlah_keluarga += Number(row.jumlah_keluarga || 0);
-      group.subtotals.desil_1_5 += Number(row.desil_1_5 || 0);
-      group.subtotals.kk_daftar += Number(row.kk_daftar || 0);
-      group.subtotals.bpnt_daftar += Number(row.bpnt_daftar || 0);
-      group.subtotals.penerima_bpnt += Number(row.penerima_bpnt || 0);
-      group.subtotals.pkh_daftar += Number(row.pkh_daftar || 0);
-      group.subtotals.penerima_pkh += Number(row.penerima_pkh || 0);
-      group.subtotals.agen += Number(row.agen || 0);
-      group.subtotals.agen_aktif += Number(row.agen_aktif || 0);
-      group.subtotals.kk_via_agen += Number(row.kk_via_agen || 0);
+      group.subtotals.jumlah_keluarga += Number(toSafeNumber(row.jumlah_keluarga)) || 0;
+      group.subtotals.desil_1_5 += Number(toSafeNumber(row.desil_1_5)) || 0;
+      group.subtotals.kk_daftar += Number(toSafeNumber(row.kk_daftar ?? (row as any).total_pendaftar)) || 0;
+      group.subtotals.bpnt_daftar += Number(toSafeNumber(row.bpnt_daftar)) || 0;
+      group.subtotals.penerima_bpnt += Number(toSafeNumber(row.penerima_bpnt)) || 0;
+      group.subtotals.pkh_daftar += Number(toSafeNumber(row.pkh_daftar)) || 0;
+      group.subtotals.penerima_pkh += Number(toSafeNumber(row.penerima_pkh)) || 0;
+      group.subtotals.agen += Number(toSafeNumber(row.agen ?? (row as any).total_agen)) || 0;
+      group.subtotals.agen_aktif += Number(toSafeNumber(row.agen_aktif)) || 0;
+      group.subtotals.kk_via_agen += Number(toSafeNumber(row.kk_via_agen)) || 0;
     });
 
     const groups = Array.from(map.values()).map((g) => {
@@ -595,7 +617,7 @@ export default function RekapPendaftaranClient() {
     }
 
     return groups;
-  }, [filteredAndSortedData, filterMode]);
+  }, [rawData, filteredAndSortedData, filterMode]);
 
   return (
     <div className="p-6 space-y-6">

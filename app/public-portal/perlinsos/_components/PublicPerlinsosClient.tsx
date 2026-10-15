@@ -56,6 +56,19 @@ interface PerlinsosData {
   tahun?: string | number;
 }
 
+/** Safely parses any value (number, string with commas/spaces, null/undefined) to a valid number. */
+function toSafeNumber(val: unknown): number {
+  if (val === null || val === undefined || val === '') return 0;
+  if (typeof val === 'number') return isNaN(val) ? 0 : val;
+  if (typeof val === 'string') {
+    const cleaned = val.replace(/,/g, '').trim();
+    const num = Number(cleaned);
+    return isNaN(num) ? 0 : num;
+  }
+  const num = Number(val);
+  return isNaN(num) ? 0 : num;
+}
+
 type FilterMode = 
   | 'all' 
   | 'sort_capaian_desil_tertinggi'
@@ -261,16 +274,16 @@ export default function PublicPerlinsosClient() {
 
     // Metric Calculations Step
     const processed = filtered.map((row) => {
-      const jumlahKeluarga = Number(row.jumlah_keluarga || 0);
-      const desil15 = Number(row.desil_1_5 || 0);
-      const kkDaftar = Number(row.kk_daftar ?? row.total_pendaftar ?? 0);
-      const bpntDaftar = Number(row.bpnt_daftar || 0);
-      const penerimaBpnt = Number(row.penerima_bpnt || 0);
-      const pkhDaftar = Number(row.pkh_daftar || 0);
-      const penerimaPkh = Number(row.penerima_pkh || 0);
-      const agen = Number(row.total_agen ?? row.agen ?? 0);
-      const agenAktif = Number(row.agen_aktif || 0);
-      const kkViaAgen = Number(row.kk_via_agen || 0);
+      const jumlahKeluarga = Number(toSafeNumber(row.jumlah_keluarga)) || 0;
+      const desil15 = Number(toSafeNumber(row.desil_1_5)) || 0;
+      const kkDaftar = Number(toSafeNumber(row.kk_daftar ?? row.total_pendaftar)) || 0;
+      const bpntDaftar = Number(toSafeNumber(row.bpnt_daftar)) || 0;
+      const penerimaBpnt = Number(toSafeNumber(row.penerima_bpnt)) || 0;
+      const pkhDaftar = Number(toSafeNumber(row.pkh_daftar)) || 0;
+      const penerimaPkh = Number(toSafeNumber(row.penerima_pkh)) || 0;
+      const agen = Number(toSafeNumber(row.total_agen ?? row.agen)) || 0;
+      const agenAktif = Number(toSafeNumber(row.agen_aktif)) || 0;
+      const kkViaAgen = Number(toSafeNumber(row.kk_via_agen)) || 0;
 
       const kkPopulasiRate = jumlahKeluarga > 0 ? (kkDaftar / jumlahKeluarga) * 100 : 0;
       const kkRentanRate = desil15 > 0 ? (kkDaftar / desil15) * 100 : 0;
@@ -419,16 +432,16 @@ export default function PublicPerlinsosClient() {
 
       const group = map.get(kap)!;
       group.rows.push(row);
-      group.subtotals.jumlah_keluarga += Number(row.jumlah_keluarga || 0);
-      group.subtotals.desil_1_5 += Number(row.desil_1_5 || 0);
-      group.subtotals.kk_daftar += Number(row.kk_daftar || 0);
-      group.subtotals.bpnt_daftar += Number(row.bpnt_daftar || 0);
-      group.subtotals.penerima_bpnt += Number(row.penerima_bpnt || 0);
-      group.subtotals.pkh_daftar += Number(row.pkh_daftar || 0);
-      group.subtotals.penerima_pkh += Number(row.penerima_pkh || 0);
-      group.subtotals.agen += Number(row.agen || 0);
-      group.subtotals.agen_aktif += Number(row.agen_aktif || 0);
-      group.subtotals.kk_via_agen += Number(row.kk_via_agen || 0);
+      group.subtotals.jumlah_keluarga += Number(toSafeNumber(row.jumlah_keluarga)) || 0;
+      group.subtotals.desil_1_5 += Number(toSafeNumber(row.desil_1_5)) || 0;
+      group.subtotals.kk_daftar += Number(toSafeNumber(row.kk_daftar ?? (row as any).total_pendaftar)) || 0;
+      group.subtotals.bpnt_daftar += Number(toSafeNumber(row.bpnt_daftar)) || 0;
+      group.subtotals.penerima_bpnt += Number(toSafeNumber(row.penerima_bpnt)) || 0;
+      group.subtotals.pkh_daftar += Number(toSafeNumber(row.pkh_daftar)) || 0;
+      group.subtotals.penerima_pkh += Number(toSafeNumber(row.penerima_pkh)) || 0;
+      group.subtotals.agen += Number(toSafeNumber(row.agen ?? (row as any).total_agen)) || 0;
+      group.subtotals.agen_aktif += Number(toSafeNumber(row.agen_aktif)) || 0;
+      group.subtotals.kk_via_agen += Number(toSafeNumber(row.kk_via_agen)) || 0;
     });
 
     const groups = Array.from(map.values()).map((g) => {
@@ -481,7 +494,7 @@ export default function PublicPerlinsosClient() {
     }
 
     return groups;
-  }, [processedTableData, filterMode]);
+  }, [data, processedTableData, filterMode]);
 
   if (error) {
     return (

@@ -179,7 +179,7 @@ export default function RekapAgenPage() {
           const { error } = await supabase
             .from('rekap_agen_perlinsos')
             .upsert(formattedData, {
-              onConflict: 'kapanewon,kalurahan',
+              onConflict: 'kapanewon, kalurahan',
               ignoreDuplicates: false
             });
             
