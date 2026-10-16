@@ -4,7 +4,7 @@ import { useState, useRef, useMemo, useEffect, Fragment } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import { useSupabaseView, notifyPerlinsosDataChanged } from '@/lib/hooks/useSupabaseView';
-import { Loader2, Plus, Upload, Edit, Trash2, X, Download, TrendingDown, ChevronDown, ChevronRight, ChevronsDown, ChevronsUp, Search } from 'lucide-react';
+import { Loader2, Plus, Upload, Edit, Trash2, X, Download, TrendingDown, ChevronDown, ChevronRight, ChevronsDown, ChevronsUp, Search, Calendar } from 'lucide-react';
 import Papa from 'papaparse';
 
 interface RekapPendaftaran {
@@ -77,6 +77,26 @@ export default function RekapPendaftaranClient() {
   const [searchKapanewon, setSearchKapanewon] = useState('');
   const [searchKalurahan, setSearchKalurahan] = useState('');
 
+  // Formatted Indonesian date indicator (e.g., "Jumat, 16 Oktober 2026")
+  const [todayDateString, setTodayDateString] = useState<string>(() => {
+    return new Intl.DateTimeFormat('id-ID', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(new Date());
+  });
+
+  useEffect(() => {
+    const formatted = new Intl.DateTimeFormat('id-ID', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(new Date());
+    setTodayDateString(formatted);
+  }, []);
+
   // Collapsible Kapanewon groups tracking
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [hasInitializedExpanded, setHasInitializedExpanded] = useState(false);
@@ -123,6 +143,7 @@ export default function RekapPendaftaranClient() {
   const [formData, setFormData] = useState({
     kapanewon: '',
     kalurahan: '',
+    jumlah_keluarga: 0,
     kk_daftar: 0,
     bpnt_daftar: 0,
     penerima_bpnt: 0,
@@ -152,6 +173,7 @@ export default function RekapPendaftaranClient() {
     const payload = {
       kapanewon: formData.kapanewon,
       kalurahan: formData.kalurahan,
+      jumlah_keluarga: Number(formData.jumlah_keluarga || 0),
       kk_daftar: Number(formData.kk_daftar || 0),
       bpnt_daftar: Number(formData.bpnt_daftar || 0),
       penerima_bpnt: Number(formData.penerima_bpnt || 0),
@@ -220,6 +242,7 @@ export default function RekapPendaftaranClient() {
     setFormData({
       kapanewon: '',
       kalurahan: '',
+      jumlah_keluarga: 0,
       kk_daftar: 0,
       bpnt_daftar: 0,
       penerima_bpnt: 0,
@@ -237,6 +260,7 @@ export default function RekapPendaftaranClient() {
     setFormData({
       kapanewon: row.kapanewon,
       kalurahan: row.kalurahan,
+      jumlah_keluarga: Number(row.jumlah_keluarga || 0),
       kk_daftar: Number(row.kk_daftar ?? row.total_pendaftar ?? 0),
       bpnt_daftar: Number(row.bpnt_daftar || 0),
       penerima_bpnt: Number(row.penerima_bpnt || 0),
@@ -252,6 +276,7 @@ export default function RekapPendaftaranClient() {
   const downloadTemplate = () => {
     const headers = [
       "kapanewon", "kalurahan", 
+      "jumlah_keluarga",
       "kk_daftar", "bpnt_daftar", "penerima_bpnt", 
       "pkh_daftar", "penerima_pkh", 
       "agen", "agen_aktif", "kk_via_agen", 
@@ -260,6 +285,7 @@ export default function RekapPendaftaranClient() {
 
     const exampleRow = [
       "Wonosari", "Wunung",
+      "1500",
       "320", "280", "275",
       "150", "148",
       "8", "6", "110",
@@ -292,6 +318,17 @@ export default function RekapPendaftaranClient() {
           const formattedData = results.data
             .filter((row: any) => row.kapanewon && row.kalurahan)
             .map((row: any) => {
+              // Extract jumlah_keluarga (or "JUMLAH KELUARGA") from uploaded CSV
+              const rawJumlahKeluarga = 
+                row.jumlah_keluarga ?? 
+                row['JUMLAH KELUARGA'] ?? 
+                row['Jumlah Keluarga'] ?? 
+                row['jumlah keluarga'] ?? 
+                row['JUMLAH_KELUARGA'] ?? 
+                row.jumlahkeluarga ?? 
+                row.jml_keluarga;
+              row.jumlah_keluarga = toSafeNumber(rawJumlahKeluarga);
+
               const kkDaftar = Number(toSafeNumber(row.kk_daftar ?? row.total_pendaftar ?? row.kkdaftar ?? row.totalpendaftar)) || 0;
               const bpntDaftar = Number(toSafeNumber(row.bpnt_daftar ?? row.bpntdaftar)) || 0;
               const penerimaBpnt = Number(toSafeNumber(row.penerima_bpnt ?? row.penerimabpnt)) || 0;
@@ -305,6 +342,7 @@ export default function RekapPendaftaranClient() {
               return {
                 kapanewon: String(row.kapanewon).trim(),
                 kalurahan: String(row.kalurahan).trim(),
+                jumlah_keluarga: Number(row.jumlah_keluarga) || 0,
                 kk_daftar: kkDaftar,
                 bpnt_daftar: bpntDaftar,
                 penerima_bpnt: penerimaBpnt,
@@ -622,11 +660,17 @@ export default function RekapPendaftaranClient() {
   return (
     <div className="p-6 space-y-6">
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex flex-col space-y-2">
+        <div className="flex flex-col space-y-1.5">
           <h1 className="text-2xl font-bold tracking-tight text-gray-900">Rekap Pendaftaran Perlinsos Digital</h1>
           <p className="text-sm text-gray-500">
             Data rekapitulasi komprehensif pendaftaran perlindungan sosial, verifikasi program (PKH & BPNT), dan kinerja agen per kalurahan.
           </p>
+          <div className="flex items-center gap-1.5 text-xs sm:text-sm text-slate-500 italic pt-0.5">
+            <Calendar className="w-4 h-4 text-slate-400 shrink-0" />
+            <span suppressHydrationWarning>
+              Diperbarui per tanggal: <span className="font-medium text-slate-700 not-italic">{todayDateString}</span>
+            </span>
+          </div>
         </div>
         
         <div className="flex items-center gap-2 flex-wrap">
@@ -1170,6 +1214,16 @@ export default function RekapPendaftaranClient() {
                       required
                       value={formData.kalurahan}
                       onChange={(e) => setFormData({ ...formData, kalurahan: e.target.value })}
+                      className="w-full border-gray-200 rounded-lg p-2 border focus:ring-red-500 focus:border-red-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Jumlah Keluarga</label>
+                    <input
+                      type="number"
+                      min="0"
+                      value={formData.jumlah_keluarga}
+                      onChange={(e) => setFormData({ ...formData, jumlah_keluarga: parseInt(e.target.value) || 0 })}
                       className="w-full border-gray-200 rounded-lg p-2 border focus:ring-red-500 focus:border-red-500"
                     />
                   </div>

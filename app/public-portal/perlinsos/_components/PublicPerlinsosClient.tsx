@@ -19,7 +19,8 @@ import {
   Loader2, 
   AlertCircle,
   ExternalLink,
-  ShieldCheck
+  ShieldCheck,
+  Calendar
 } from 'lucide-react';
 import { 
   ComposedChart, 
@@ -94,6 +95,26 @@ export default function PublicPerlinsosClient() {
   const [searchKapanewon, setSearchKapanewon] = useState('');
   const [searchKalurahan, setSearchKalurahan] = useState('');
   const [filterMode, setFilterMode] = useState<FilterMode>('all');
+
+  // Formatted Indonesian date indicator (e.g., "Jumat, 16 Oktober 2026")
+  const [todayDateString, setTodayDateString] = useState<string>(() => {
+    return new Intl.DateTimeFormat('id-ID', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(new Date());
+  });
+
+  useEffect(() => {
+    const formatted = new Intl.DateTimeFormat('id-ID', {
+      weekday: 'long',
+      day: 'numeric',
+      month: 'long',
+      year: 'numeric',
+    }).format(new Date());
+    setTodayDateString(formatted);
+  }, []);
 
   // Collapsible Kapanewon groups tracking
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
@@ -534,8 +555,16 @@ export default function PublicPerlinsosClient() {
         {/* Header Section */}
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="space-y-1.5">
-            <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200/60">
-              Publik & Eksternal
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-blue-50 text-blue-700 border border-blue-200/60">
+                Publik & Eksternal
+              </span>
+              <div className="flex items-center gap-1.5 text-xs text-slate-500 italic">
+                <Calendar className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                <span suppressHydrationWarning>
+                  Diperbarui per tanggal: <span className="font-medium text-slate-700 not-italic">{todayDateString}</span>
+                </span>
+              </div>
             </div>
             <h1 className="text-3xl font-extrabold tracking-tight text-gray-900">
               Portal Publik Perlinsos Digital
